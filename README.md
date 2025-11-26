@@ -7,7 +7,7 @@ The holidays with family or friends is a perfect time to bust this out to amp up
 
 - 🏈 **Single Day (or week of the NFL) Leagues:** Run a full draft, competition, and recap for just a handful of games, ideally for a group of 3-12 (it could certainly support more though!)
 - 🚀 **Launch Setup Panels:** Instead of fumbling with cells, you launch a series of clean, web-app-like interfaces to guide you through setup.
-- 👥 **Manage Group: **Add members, auto-generate fun team names, and set the draft order by dragging-and-dropping or randomizing it with a dramatic, one-by-one reveal. You can even toggle on a 3rd Round Reversal draft.
+- 👥 **Manage Group:** Add members, auto-generate fun team names, and set the draft order by dragging-and-dropping or randomizing it with a dramatic, one-by-one reveal. You can even toggle on a 3rd Round Reversal draft.
 - 🧮 **Customize Rosters:** Visually build your roster (e.g., QB, RB, RB, WR, FLX) and set the scoring format (1.0, 0.5, 0.0 PPR). You can create duplicate (clones) of players to ensure your whole gang can participate (you'll be prevented from drafting duplicates per individual roster
 - 📆 **Select Matchups:** It pulls the latest weekly schedule from the ESPN API and lets you pick exactly which games you want to include in your player pool.
 - 👌 **Make Picks:** Draft your team using the sheet's interface and checkboxes; you'll run your snake (or snake with 3RR) draft to fill out the roster, with prompts to confirm all picks and a penalty flag to recall a pick. Each player will have their Sleeper, ESPN, and Fantasy Pros projections, injury statuses, and previous score, when available.
