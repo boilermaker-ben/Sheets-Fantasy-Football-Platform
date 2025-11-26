@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <base target="_top">
+    <title>Help & Support</title>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Montserrat', Arial, sans-serif; padding: 10px 20px 0; margin: 0; background-color: #FFFFFF; }
+      .card-header-top { background-color: #013369; color: white; font-weight: 800; padding: 22px 20px; text-align: left; }
+      .card-header-text-only { background-color: #5E5E5E; color: white; font-weight: 700; padding: 18px 16px; text-align: left; }
+      .card-section { padding: 16px; border-bottom: 1px solid #E8EAED; }
+      .section-header-big { font-size: 24px; color: #FFFFFF; font-weight: 700; flex: 1; }
+      .version-badge { position: absolute; top: 20px; right: 35px; font-size: 10px; font-weight: 500; color: rgba(255, 255, 255, 0.7); letter-spacing: 0.5px; }
+      p { font-size: 14px; color: #333; line-height: 1.6; margin: 0 0 1em 0; }    
+      p:last-child { margin-bottom: 0; }
+      a { color: #013369; font-weight: 600; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .button-section { padding: 16px; background-color: #f8f9fa; }
+      .button-row { display: flex; gap: 10px; margin-top: 10px; }
+      .btn { flex: 1; padding: 8px 14px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: 600; color: white; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+      .btn:hover { text-decoration: none; }
+      .btn-primary { background-color: #013369; }
+      .btn-primary:hover { background-color: #2067b3; }
+      .btn-secondary { background-color: #D50A0A; }
+      .btn-secondary:hover { background-color: #ff3d3d; }
+      .btn-coffee { font-size: 11px; font-weight: 550; background-color: #FFDD00; color: #000000; }
+      .btn-coffee:hover { background-color: #FFEA62; }
+      .btn-venmo { font-size: 11px; font-weight: 550; background-color: #008CFF; color: #000000; }
+      .btn-venmo:hover { background-color: #6EBDFF; } 
+      .icon { width: 16px;   height: 16px; fill: currentColor; }
+    </style>
+  </head>
+<body>
+  <div class="card-header-top">
+    <div class="section-header-big">Help & Support</div>
+    <div class="version-badge" id="version">v...</div>
+  </div>
+
+  <div class="card-header-text-only">
+    <div>Get Help</div>
+  </div>
+  <div class="card-section">
+    <p>I aim to be responsive, but I have a wife, five young kiddos (sixth on the way!), and a full-time job that keep me busy. Your best bet for help is one of the options below. Suggestions for improvement welcome too!</p>
+    <div class="button-row">
+      <a href="mailto:benpowerscreative@gmail.com?subject=Daily%20Football%20Pool%20Help" target="_blank" class="btn btn-secondary">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        Send Email
+      </a>
+      <a href="https://github.com/boilermaker-ben/Sheets-Fantasy-Football-Platform" target="_blank" class="btn btn-primary">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 1.27a11 11 0 00-3.48 21.46c.55.1.73-.24.73-.53v-1.84c-3.03.66-3.67-1.46-3.67-1.46-.5-1.27-1.22-1.61-1.22-1.61-1-.68.08-.67.08-.67 1.1.08 1.68 1.13 1.68 1.13.98 1.68 2.56 1.2 3.18.92.1-.72.38-1.2.7-1.48-2.42-.27-4.96-1.2-4.96-5.39 0-1.19.42-2.16 1.12-2.92-.1-.27-.48-1.38.1-2.88 0 0 .92-.3 3 1.12a10.46 10.46 0 015.46 0c2.08-1.42 3-1.12 3-1.12.58 1.5.2 2.6.1 2.88.7.76 1.12 1.73 1.12 2.92 0 4.2-2.54 5.12-4.98 5.38.4.34.72.96.72 1.94v2.88c0 .3.18.63.73.53A11 11 0 0012 1.27z"/></svg>
+        Visit GitHub
+      </a>
+    </div>
+  </div>
+
+  <div class="card-header-text-only">
+    <div>Support My Work</div>
+  </div>
+  <div class="card-section">
+    <p>If you've enjoyed using this tool, that's what I'm most excited about. If you're feeling generous and have the means, you can support my efforts below.</p>
+    <div class="button-row">
+      <a href="https://buymeacoffee.com/benpowers" target="_blank" class="btn btn-coffee">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M2 19h18v2H2zM20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm-2 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
+        Buy me coffee or kids pizza
+      </a>
+      <a href="https://venmo.com/benpowerscreative" target="_blank" class="btn btn-venmo">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M19.87 2.23a7.13 7.13 0,0,1 1.03 3.9c0 4.86-4.15 11.17-7.5 15.6H6.96L3.87 3.29L9.61 2.65l1.64 13.12c1.52-2.5 3.4-6.38 3.4-9.04A7.26 7.26 0,0,0 14 3.47Z"/>
+        </svg>
+        Chip in with Venmo
+      </a>
+    </div>
+  </div>
+
+  <div class="card-header-text-only">
+    <div>Original File Link</div>
+  </div>
+  <div class="card-section">
+    <p>Need to recreate your daily fantasy contest? Get a fresh copy of <a href="https://docs.google.com/spreadsheets/d/128wZbrvU_FOLUigEoipaFksz55Xy7o-BwPZ_dYR5oLc/edit?usp=sharing" target="_blank">the original template file.</a></p>
+  </div>
+  <script>    
+    document.addEventListener('DOMContentLoaded', function() {
+      google.script.run
+        .withSuccessHandler(displayVersion)
+        .withFailureHandler(onLoadFailure)
+        .getSupportPromptInfo();
+    });
+
+    function displayVersion(data) {
+      console.log('Version data received:', data);
+      if (data && data.version) {
+        document.getElementById('version').textContent = 'v' + data.version;
+      }
+    };
+
+    function onLoadFailure(error) {
+      console.error('Could not load version information:', error);
+      document.getElementById('version').textContent = 'v?';
+    }
+  </script>
+</body>
+</html>
