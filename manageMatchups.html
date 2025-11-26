@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <base target="_top">
+    <title>Manage Matchups</title>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body { 
+            font-family: 'Montserrat', Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #f0f2f5; 
+            overflow: hidden; 
+            height: 100%;
+        }
+        
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #013369; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .main-container {
+            width: 100%;
+            height: 100%;
+            background-color: white; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-box {
+            background-color: #232735;
+            padding: 12px;
+            margin: 16px;
+            border-radius: 8px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        
+        .controls-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-shrink: 0; color: white; }
+        .controls-header label { font-weight: 600; }
+        .controls-header select { padding: 8px; border-radius: 4px; border: 1px solid #666; background-color: #4a4f5c; color: white; font-size: 12px; }
+
+        #matchup-list-container { flex-grow: 1; overflow-y: auto; }
+        #matchup-list-container {
+            /* For Firefox */
+            scrollbar-width: thin;
+            scrollbar-color: #5a5f6c transparent;
+        }
+
+        /* For Chrome, Safari, and Edge */
+        #matchup-list-container::-webkit-scrollbar {
+            width: 8px; /* Width of the scrollbar */
+        }
+
+        #matchup-list-container::-webkit-scrollbar-track {
+            background: transparent; /* Makes the track invisible */
+        }
+
+        #matchup-list-container::-webkit-scrollbar-thumb {
+            background-color: #5a5f6c; /* The dark gray color of the handle */
+            border-radius: 4px;      /* Rounded corners for the handle */
+            border: 2px solid transparent; /* Creates padding around the handle */
+            background-clip: content-box;
+        }
+
+        #matchup-list-container::-webkit-scrollbar-thumb:hover {
+            background-color: #777; /* A slightly lighter gray on hover */
+        }        
+        .day-group {
+            border: 1px solid #4a4f5c;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #ccc;
+            text-transform: uppercase;
+            padding: 6px 12px;
+            background-color: #313852;
+        }
+        .matchup-row {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            background-color: #2b3142;
+            border-top: 1px solid #4a4f5c;
+            color: white;
+            font-size: 14px;
+            transition: opacity 0.3s ease;
+        }
+        .matchup-row.deselected {
+            opacity: 0.5;
+        }
+        
+        .matchup-row .checkbox-col { width: 50px; }
+        .matchup-row .team-col {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        .away-team, .home-team {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Space between logo and name */
+        }
+        .away-team {
+            width: 70px;
+        }
+        .at-separator {
+            color: #888;
+            margin: 0 8px;
+            text-align: center;
+        }
+        .matchup-row .time-col { font-weight: 500; color: #ccc; text-align: right; font-size: 13px; }
+        .team-logo-home { margin-left: 20px; width: 22px; height: 22px; }
+        .team-logo-away { width: 22px; height: 22px; }
+        .team-abbr { font-weight: 600; }
+        .at-separator { color: #888; margin: 0 8px; }
+        
+        .switch { position: relative; display: inline-block; width: 30px; height: 18px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #777; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #00CEB8; }
+        input:checked + .slider:before { transform: translateX(12px); }
+
+        .hidden { display: none !important; }
+        
+        .button-section { padding: 15px 20px; border-top: 1px solid #eee; background-color: #f8f9fa; flex-shrink: 0; }
+        .button-row { display: flex; gap: 8px; }
+        .btn { flex: 1; padding: 8px 14px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: 600; }
+        .btn-primary { background-color: #013369; color: white; }
+        .btn-secondary { background-color: #D50A0A; color: white; }
+        
+        .btn-day-toggle {
+            min-width: 50px;
+            padding: 5px 10px;
+            font-size: 10px;
+            font-weight: 500;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .btn-day-toggle.select { background-color: #00CEB8; }
+        .btn-day-toggle.select:hover { background-color: #00EBCF; }
+        .btn-day-toggle.deselect { background-color: #ff913d; }
+        .btn-day-toggle.deselect:hover { background-color: #e86705; }
+    </style>
+</head>
+<body>
+
+<div id="loading-overlay"><div class="spinner"></div></div>
+
+<div class="main-container">
+    <div class="content-box">
+        <div class="controls-header">
+            <label for="week-select">Select Week:</label>
+            <select id="week-select"></select>
+        </div>
+        <div id="matchup-list-container"></div>
+    </div>
+    <div class="button-section">
+        <div class="button-row">
+            <button type="button" class="btn btn-secondary" onclick="google.script.host.close()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="handleSubmit()">Submit</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activeYear = null;
+    const weekSelect = document.getElementById('week-select');
+    const matchupContainer = document.getElementById('matchup-list-container');
+    const loader = document.getElementById('loading-overlay');
+    let isDropdownPopulated = false;
+
+    function showLoader() { loader.classList.remove('hidden'); }
+    function hideLoader() { loader.classList.add('hidden'); }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        weekSelect.addEventListener('change', () => loadWeekData(weekSelect.value));
+        loadWeekData(); 
+    });
+
+    function loadWeekData(week) {
+        showLoader();
+        google.script.run
+            .withSuccessHandler(applyInitialData)
+            .withFailureHandler(err => { alert('Error: ' + err.message); hideLoader(); })
+            .fetchScheduleData(week);
+    }
+    
+    function applyInitialData(data) {
+        if (!isDropdownPopulated) {
+            weekSelect.innerHTML = '';
+            const minWeek = data.minWeek || 1;
+            for (let i = minWeek; i <= 23; i++) {
+                if (i === 22) continue; // Pro Bowl skip
+                let weekName = `Week ${i}`;
+                // if (i > 18) {
+                //     const playoffRounds = { 19: 'Wild Card', 20: 'Divisional', 21: 'Conference', 23: 'Super Bowl' };
+                //     weekName = playoffRounds[i] || `Post ${i}`;
+                // }
+                weekSelect.add(new Option(weekName, i));
+            }
+            isDropdownPopulated = true; // Set the flag to prevent this from running again
+        }
+
+        weekSelect.value = data.week;
+        activeYear = data.year;
+        renderMatchups(data);
+    }
+
+    function renderMatchups(data) {
+        matchupContainer.innerHTML = '';
+        let { schedule, selectedIds } = data;
+        weekSchedule = schedule || [];
+
+        if (!schedule || schedule.length === 0) {
+            matchupContainer.innerHTML = '<p style="color: white; text-align: center; padding: 20px;">No games found.</p>';
+            hideLoader();
+            return;
+        }
+
+        const gamesByDay = schedule.reduce((acc, game) => {
+            const day = new Date(game.date).toLocaleDateString('en-US', { weekday: 'long' });
+            if (!acc[day]) acc[day] = [];
+            acc[day].push(game);
+            return acc;
+        }, {});
+        
+        const dayOrder = ['Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday'];
+
+        if (selectedIds.length === 0 && schedule.length > 0) {
+            for (const day of dayOrder) {
+                if (gamesByDay[day]) { selectedIds = gamesByDay[day].map(g => g.id); break; }
+            }
+        }
+        
+        for (const day of dayOrder) {
+            if (gamesByDay[day]) {
+                const dayGroup = document.createElement('div');
+                dayGroup.className = 'day-group';
+                dayGroup.dataset.day = day;
+
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'day-header';
+                
+                const allGameIdsInDay = gamesByDay[day].map(g => g.id);
+                const areAllSelected = allGameIdsInDay.every(id => selectedIds.includes(id));
+                const buttonClass = areAllSelected ? 'deselect' : 'select';
+                const buttonText = areAllSelected ? 'NONE' : 'ALL';
+
+                dayHeader.innerHTML = `
+                    <span>${day}</span>
+                    <button type="button" class="btn-day-toggle ${buttonClass}" data-day="${day}">${buttonText}</button>
+                `;
+                dayGroup.appendChild(dayHeader);
+
+                gamesByDay[day].forEach(game => {
+                    const isChecked = selectedIds.includes(game.id);
+                    const row = document.createElement('div');
+                    row.className = `matchup-row ${isChecked ? '' : 'deselected'}`;
+                    row.dataset.gameId = game.id;
+                    const gameTime = new Date(game.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                    
+                    row.innerHTML = `
+                        <div class="checkbox-col"><label class="switch"><input type="checkbox" name="matchup-checkbox" value="${game.id}" ${isChecked ? 'checked' : ''}><span class="slider"></span></label></div>
+                        <div class="team-col">
+                            <div class="away-team">
+                                <img src="${game.awayTeamLogo}" class="team-logo-away">
+                                <span class="team-abbr">${game.awayTeamAbbr}</span>
+                            </div>
+                            <span class="at-separator">@</span>
+                            <div></div>
+                            <div class="home-team">
+                                <img src="${game.homeTeamLogo}" class="team-logo-home">
+                                <span class="team-abbr">${game.homeTeamAbbr}</span>
+                            </div>
+                        </div>
+                        <div class="time-col">${gameTime}</div>`;
+                    dayGroup.appendChild(row);
+                });
+                matchupContainer.appendChild(dayGroup);
+            }
+        }
+        
+        document.querySelectorAll('.btn-day-toggle').forEach(button => button.addEventListener('click', handleDaySelectButton));
+        document.querySelectorAll('input[name="matchup-checkbox"]').forEach(checkbox => checkbox.addEventListener('change', handleGameToggle));
+        hideLoader();
+    }
+
+    function handleDaySelectButton(e) {
+        const button = e.target;
+        const day = button.dataset.day;
+        const shouldSelect = button.classList.contains('select');
+
+        const dayGroup = document.querySelector(`.day-group[data-day="${day}"]`);
+        dayGroup.querySelectorAll('input[name="matchup-checkbox"]').forEach(gameCheckbox => {
+            gameCheckbox.checked = shouldSelect;
+            gameCheckbox.closest('.matchup-row').classList.toggle('deselected', !shouldSelect);
+        });
+
+        button.classList.toggle('select', !shouldSelect);
+        button.classList.toggle('deselect', shouldSelect);
+        button.textContent = shouldSelect ? 'NONE' : 'ALL';
+    }
+
+    function handleGameToggle(e) {
+        const row = e.target.closest('.matchup-row');
+        const dayGroup = row.closest('.day-group');
+        const day = dayGroup.dataset.day;
+        
+        row.classList.toggle('deselected', !e.target.checked);
+
+        const allGameCheckboxes = dayGroup.querySelectorAll('input[name="matchup-checkbox"]');
+        const areAllSelected = Array.from(allGameCheckboxes).every(cb => cb.checked);
+        
+        const dayButton = dayGroup.querySelector('.btn-day-toggle');
+        dayButton.classList.toggle('select', !areAllSelected);
+        dayButton.classList.toggle('deselect', areAllSelected);
+        dayButton.textContent = areAllSelected ? 'NONE' : 'ALL';
+    }
+
+    function handleSubmit() {
+        const selectedIds = Array.from(document.querySelectorAll('input[name="matchup-checkbox"]:checked')).map(cb => cb.value);
+
+        if (selectedIds.length === 0) {
+            alert("⚠️ You must select at least one game to include.");
+            return;
+        }
+        
+        // 1. Filter the full schedule to get only the selected games.
+        const selectedGamesData = weekSchedule.filter(game => selectedIds.includes(game.id));
+
+        // 2. Map the filtered data
+        const teamsToSave = selectedGamesData.flatMap(game => [game.awayTeamAbbr, game.homeTeamAbbr]);
+        
+        const confirmationMessage = `✅ You have selected ${selectedIds.length} game(s) for Week ${weekSelect.value} of the ${activeYear} season.\n\n❔ Do you want to save these selections?`;
+        if (confirm(confirmationMessage)) {
+            showLoader();
+            google.script.run
+                .withSuccessHandler(() => {
+                  google.script.run
+                    .withSuccessHandler(() => google.script.host.close())
+                    .saveMatchupsSuccess();
+                })
+                .withFailureHandler(err => { alert('Save failed: ' + err.message); hideLoader(); })
+                .saveMatchups({ week: weekSelect.value, year: activeYear, gameIds: selectedIds, teams: teamsToSave });
+        }
+    }
+</script>
+</body>
+</html>
