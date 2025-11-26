@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <title>Contest Recap</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body { 
+            font-family: 'Montserrat', Arial, sans-serif; 
+            margin: 0; padding: 0; background-color: #f0f2f5; 
+            overflow-x: hidden; height: 100%;
+        }
+        
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #013369; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+                .main-container {
+            width: 100%; height: 100%; background-color: #232735;
+            padding: 20px; box-sizing: border-box; overflow-y: auto;
+        }
+        .section-header { color: #ccc; margin: 20px 0 10px; font-weight: 600; }
+        .recap-grid, .performers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background-color: #313852;
+            border-radius: 8px;
+            padding: 15px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        /* --- Card Header --- */
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-right: 60px; 
+        }
+        .card-header h3 { margin: 0; font-size: 14px; text-transform: uppercase; color: #ccc; }
+        .card-header .emoji { font-size: 18px; }
+
+        /* --- Player/Member Info Blocks --- */
+        .player-info { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+        .player-info img {
+            width: 35px; height: 35px; border-radius: 50%; background-color: #4a4f5c;
+            object-fit: cover;
+        }
+        .details .name { font-weight: 600; font-size: 12px; }
+        .details .sub-text { font-size: 9px; color: #aaa; }
+        .score {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #00CEB8;
+        }
+        .score-low {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #ff913d;
+        }
+
+        /* --- Winner / Podium Cards --- */
+        #winner-card { border: 3px solid #00CEB8; }
+        #winner-card .details .name { font-size: 22px; color: #00CEB8; }
+        #winner-card .score { font-size: 32px; color: #00CEB8; }
+        .podium-info { display: flex; align-items: center; gap: 12px; }
+        .podium-info .details .name { font-size: 20px; }
+
+        /* --- Positional Icons --- */
+        .snapshot-pos { 
+            width: 36px; height: 22px; font-weight: 500; font-size: 12px; 
+            padding: 0px 4px; border-radius: 6px; 
+            display: flex; justify-content: center; align-items: center; 
+        }
+        .pick-detail-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            background-color: #4a4f5c;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        
+        .performers-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+                
+        .hidden { 
+            display: none !important; 
+        }
+
+        .button-section { 
+              background-color: #232735; 
+              padding: 20px 0 0; 
+              flex-shrink: 0;
+          }
+        .button-row { 
+            display: flex; 
+            gap: 8px; 
+        }
+        .btn { 
+            flex: 1; 
+            padding: 8px 14px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            font-weight: 600; 
+        }
+        .btn-primary { 
+            background-color: #013369; 
+            color: white; 
+        }
+        .btn-primary:hover { 
+            background-color: #2067b3; 
+        }        
+    </style>
+</head>
+<body>
+
+<div id="loading-overlay"><div class="spinner"></div></div>
+
+<div class="main-container">
+    <div class="recap-grid">
+        <div class="stat-card hidden" id="winner-card"></div>
+    </div>
+    <br>
+    <div class="recap-grid" id="podium-section">
+        <div class="stat-card hidden" id="second-place-card"></div>
+        <div class="stat-card hidden" id="third-place-card"></div>
+        <div class="stat-card hidden" id="loser-card"></div>
+    </div>
+    <br class="recap-grid">
+    <div class="recap-grid" id="high-low-section">
+        <div class="stat-card hidden" id="highest-scorer-card"></div>
+        <div class="stat-card hidden" id="lowest-scorer-card"></div>
+    </div>
+
+    <h3 class="section-header">⭐ Top Performers</h3>
+    <div class="performers-grid" id="top-performers-section"></div>
+
+    <h3 class="section-header">👎 Bottom Performers</h3>
+    <div class="performers-grid" id="bottom-performers-section"></div>
+    <br>
+    <div class="recap-grid">
+        <div class="stat-card hidden" id="draft-gem-card"></div>
+        <div class="stat-card hidden" id="draft-dud-card"></div>
+        <div class="stat-card hidden" id="undrafted-gem-card"></div>
+    </div>
+
+    <div class="button-section"> <!-- ... close button ... --> </div>
+</div>
+
+<script>
+    const loader = document.getElementById('loading-overlay');
+    const posMeta = { 'QB':{c:'#FF2A6D',t:'#333'},'RB':{c:'#00CEB8',t:'#333'},'WR':{c:'#58A7FF',t:'#333'},'TE':{c:'#FFAE58',t:'#333'},'DEF':{c:'#7988A1',t:'#333'},'K':{c:'#BD66FF',t:'#333'}};
+
+    function showLoader() { loader.classList.remove('hidden'); }
+    function hideLoader() { loader.classList.add('hidden'); }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        showLoader();
+        google.script.run
+            .withSuccessHandler(populateRecap)
+            .withFailureHandler(err => { alert('Error: ' + err.message); hideLoader(); })
+            .fetchRecapData();
+    });
+
+    function populateRecap(data) {
+        console.log("Recap Data:", data);
+        const memberCount = data.members.length;
+
+        // --- Render Winner ---
+        if (data.winners && data.winners.length > 0) {
+            const firstPlace = data.winners[0];
+            const winnerNames = firstPlace.members.map(m => m.name).join(' & ');
+            const teamNames = firstPlace.members.map(m => m.teamName).join(' & ');
+            
+            // --- THIS IS THE KEY CHANGE ---
+            // Use the 'isTie' property to dynamically set the title.
+            const titleText = firstPlace.isTie ? 'Co-Champions!' : 'Champion!';
+
+            const winnerHtml = `
+                <div class="podium-info">
+                    <div class="details">
+                        <div class="name">🏆 ${titleText}</div>
+                        <div class="sub-text" style="font-weight: 600; font-size: 20px; color: white;">${winnerNames}</div>
+                        <div class="sub-text">${teamNames}</div>
+                    </div>
+                    <div class="score">${firstPlace.score.toFixed(2)}</div>
+                </div>`;
+                
+            const winnerCard = document.getElementById('winner-card');
+            winnerCard.innerHTML = winnerHtml;
+            winnerCard.classList.remove('hidden');
+        }
+
+        // --- Conditional Rendering for Podium/Loser ---
+        if (memberCount === 2) {
+            renderCard('loser-card', '🤡', 'Loser', data.lowestScorer, 'member');
+        } else {
+            renderCard('second-place-card', '🥈', 'Runner Up', data.podium.second, 'member');
+            renderCard('third-place-card', '🥉', 'Third Place', data.podium.third, 'member');
+        }
+        
+        if (memberCount > 2) {
+            document.getElementById('high-low-section').classList.remove('hidden');
+            renderCard('highest-scorer-card', '😎', 'Highest Scorer', data.highestScorer, 'member');
+            renderCard('lowest-scorer-card', '😬', 'Lowest Scorer', data.lowestScorer, 'member');
+        }
+        
+        // --- Render Performers Dynamically ---
+        const topPerfContainer = document.getElementById('top-performers-section');
+        const botPerfContainer = document.getElementById('bottom-performers-section');
+        topPerfContainer.innerHTML = ''; // Clear containers
+        botPerfContainer.innerHTML = '';
+
+        ['QB','RB','WR','TE','DEF','K'].forEach(pos => {
+            if (data.topPerformers[pos]) topPerfContainer.appendChild(createPerformerCard(data.topPerformers[pos], pos));
+            if (data.bottomPerformers[pos]) botPerfContainer.appendChild(createPerformerCard(data.bottomPerformers[pos], pos, true));
+        });
+        
+        renderCard('draft-gem-card', '💎', 'Draft Gem', data.draftGem, 'player', 'pickNumber');
+        renderCard('draft-dud-card', '🥶', 'Draft Dud', data.draftDud, 'player', 'pickNumber', true);
+        renderCard('undrafted-gem-card', '✨', 'Undrafted Star', data.unownedOverperformer, 'player');
+
+        hideLoader();
+    }
+
+    function createPerformerCard(data, positionAbbr, low) {
+        const card = document.createElement('div');
+        card.className = 'stat-card';
+        const meta = posMeta[positionAbbr];
+
+        card.innerHTML = `
+            <div class="score${low? '-low' : ''}">${data.score.toFixed(2)}</div>
+            <div class="card-header">
+                <div class="snapshot-pos" style="background-color:${meta.c}; color:${meta.t};">${positionAbbr}</div>
+            </div>
+            <div class="player-info">
+                <img src="${data.image || ''}" alt="">
+                <div class="details">
+                    <div class="name">${data.name}</div>
+                    <div class="sub-text">${data.owners.join(', ')}</div>
+                </div>
+            </div>`;
+        return card;
+    }
+
+    function renderCard(elementId, emoji, title, data, type, extraDetailProp = null, low) {
+        const card = document.getElementById(elementId);
+        if (!card || !data) { return; }
+        
+        let extraDetails = '';
+        if (extraDetailProp && data[extraDetailProp]) {
+            extraDetails = `<span class="pick-detail-text">#${data[extraDetailProp]}</span>`;
+        }
+
+        let infoBlock = '';
+        if (type === 'member') {
+            infoBlock = `<div class="podium-info"><div class="details"><div class="name">${data.name}</div><div class="sub-text">${data.teamName}</div></div><div class="score${low? '-low' : ''}">${data.score.toFixed(2)}</div></div>`;
+        } else { // draft/undrafted value
+            infoBlock = `<div class="player-info"><img src="${data.image || ''}" alt=""><div class="details"><div class="name">${data.name}</div><div class="sub-text">Owned by: ${data.owners.join(', ')}</div></div><div class="score${low? '-low' : ''}">${data.score.toFixed(2)}</div></div>`;
+        }
+
+        card.innerHTML = `<div class="card-header"><span class="emoji">${emoji}</span><h3>${title}</h3>${extraDetails}</div>${infoBlock}`;
+        card.classList.remove('hidden');
+    }
+</script>
+</body>
+</html>
