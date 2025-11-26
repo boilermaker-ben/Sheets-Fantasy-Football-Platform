@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <base target="_top">
+    <title>Manage Members</title>
+    <meta charset="UTF-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body { 
+            font-family: 'Montserrat', Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #f0f2f5; 
+            overflow: hidden; 
+            height: 100%;
+        }
+        
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.85); display: flex; justify-content: center; align-items: center; z-index: 100; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #013369; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+
+        .main-container {
+            width: 100%;
+            height: 100%;
+            background-color: white; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-box {
+            background-color: #232735;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 8px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        
+        .controls-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; flex-shrink: 0; }
+        .draft-toggles { display: flex; flex-direction: column; gap: 10px; }
+        .draft-order-toggle { display: flex; align-items: center; gap: 10px; }
+        .draft-order-toggle label { font-weight: 600; color: #FFFFFF; font-size: 14px; }
+        
+        .switch { position: relative; display: inline-block; width: 28px; height: 16px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #777; transition: .4s; border-radius: 18px; }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #00CEB8; }
+        input:checked + .slider:before { transform: translateX(12px); }
+
+        .btn-generate { padding: 6px 12px; font-size: 14px; font-weight: 600; background-color: #00CEB8; color: #FFFFFF; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-generate:hover { background-color: #00EBCF; }
+        
+        .tooltip-trigger {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background-color: #5a5f6c;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: help;
+            margin-left: 5px;
+        }
+        .tooltip-content {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            top: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            background-color: #313852;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 15px;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: opacity 0.3s;
+            font-size: 12px;
+            line-height: 1.2;
+        }
+        .tooltip-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            font-size: 11px;
+        }
+        .tooltip-content th, .tooltip-content td {
+            border: 1px solid #4a4f5c;
+            padding: 3px;
+            font-weight: 700;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .tooltip-content thead th {
+            background-color: #3D4254;
+            font-weight: 600;
+        }
+        .tooltip-content .col-round {
+            width: 30px;
+        }
+        .tooltip-content .col-dir {
+            width: 35px;
+        }
+        .tooltip-content .arrow {
+            font-size: 2.0em;
+            line-height: 1.0;
+        }
+        .tooltip-content .dir-right { background-color: rgba(0, 207, 186, 0.5); }
+        .tooltip-content .dir-left { background-color: rgba(255, 145, 61, 0.5); }
+        .reversal-row td { background-color: rgba(255, 145, 61, 1.0); }
+
+        .tooltip-trigger:hover .tooltip-content { visibility: visible; opacity: 1; }
+        .tooltip-content h4 { margin: 0 0 10px 0; color: #00CEB8; font-size: 14px; }
+        .tooltip-content pre { background-color: #232735; padding: 10px; border-radius: 4px; margin: 5px 0 10px; }
+        .tooltip-content strong { font-weight: 600; color: #FFAE58; }
+
+        .header-row { display: flex; align-items: center; padding: 0 10px 8px 0; margin-bottom: 5px; border-bottom: 1px solid #4a4f5c; font-size: 12px; font-weight: 600; color: #CCCCCC; text-transform: uppercase; flex-shrink: 0; }
+        .col-slot { width: 40px; text-align: center; }
+        .col-drag { width: 30px; }
+        .col-name { flex: 1; }
+        .col-team { flex: 1.2; }
+        .col-remove { width: 40px; }
+        
+        #member-list-container { flex-grow: 1; overflow-y: auto; }
+        #member-list { list-style: none; padding: 0; margin: 0; }
+        .member-row { display: flex; align-items: center; padding: 6px 8px 6px 0; margin-top: 6px; background-color: #3D4254; border-radius: 6px; color: white; }
+        
+        .draft-slot { width: 40px; text-align: center; font-weight: 600; font-size: 15px; color: #ccc; }
+        .drag-handle { width: 30px; cursor: grab; text-align: left; color: #00ceb8; font-size: 18px; transition: opacity 0.3s; }
+        .drag-handle:active { cursor: grabbing; }
+        .randomized .drag-handle { opacity: 0.2; cursor: not-allowed; }
+
+        .member-name { padding: 6px 8px; border: 1px solid #666; background-color: #4a4f5c; color: white; border-radius: 4px; font-size: 14px; width: 85%; }
+        .team-name { padding: 6px 8px; border: 1px solid #666; background-color: #4a4f5c; color: white; border-radius: 4px; font-size: 14px; width: 100%; }
+        .team-name-wrapper { flex: 1.2; position: relative; display: flex; align-items: center; }
+        .clear-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 18px; color: #aaa; cursor: pointer; display: none; }
+        .team-name-wrapper:hover .clear-btn { display: block; }
+        
+        .member-remove { width: 40px; text-align: right; }
+        .remove-btn { background: none; border: none; color: #FF5A22; font-size: 20px; font-weight: 700; cursor: pointer; }
+        
+        .add-member-section { padding-top: 15px; flex-shrink: 0; }
+        .add-member-btn { width: 100%; padding: 8px 14px; border: none; color: white; background-color: #00CEB8; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: 600; }
+        .add-member-btn:hover { background-color: #00EBCF; }
+        
+        .button-section { padding: 15px 20px; border-top: 1px solid #eee; background-color: #f8f9fa; flex-shrink: 0; }
+        .button-row { display: flex; gap: 8px; }
+        .btn { flex: 1; padding: 8px 14px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: 600; }
+        .btn-primary { background-color: #013369; color: white; }
+        .btn-primary:hover { background-color: #2067b3; }
+        .btn-secondary { background-color: #D50A0A; color: white; }
+        .btn-secondary:hover { background-color: #ff3d3d; }
+        
+        .btn-reveal { background-color: #00CEB8; color: white; }
+        .btn-reveal:hover { background-color: #00EBCF; }
+        #reveal-modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+            z-index: 200;
+        }
+        #reveal-modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .reveal-box {
+            background-color: #232735;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            width: 70%;
+            max-width: 400px;
+            text-align: center;
+            padding: 25px;
+            color: white;
+        }
+        .reveal-box h2 {
+            color: #FFFFFF;
+            margin: 0 0 20px 0;
+            border-bottom: 1px solid #4a4f5c;
+            padding-bottom: 15px;
+        }
+        #reveal-pick-display {
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .reveal-pick-slot {
+            font-size: 20px;
+            color: #ccc;
+            font-weight: 500;
+        }
+        .reveal-pick-name {
+            font-size: 32px;
+            color: #FFFFFF;
+            font-weight: 700;
+        }
+        #final-order-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 20px 0;
+            text-align: left;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        #final-order-list li {
+            padding: 8px;
+            border-bottom: 1px solid #4a4f5c;
+            font-size: 18px;
+        }
+        #final-order-list li:last-child { border-bottom: none; }
+        #final-order-list .pick-num { font-weight: 700; color: #00CEB8; display: inline-block; width: 30px; }
+
+        #reveal-controls .button-row { display: flex; gap: 8px; }
+        .reveal-team-name {
+            font-size: 28px;
+            color: #00CEB8; /* Teal to stand out */
+            font-weight: 700;
+            margin-top: 10px;
+        }
+        .reveal-byline {
+            font-size: 14px;
+            color: #aaa;
+            font-style: italic;
+            margin: 4px 0;
+        }
+        .reveal-pick-name {
+            font-size: 24px; /* Slightly smaller than team name */
+            color: #FFFFFF;
+            font-weight: 600;
+        }
+
+        #final-order-list .final-team-name {
+            font-weight: 600;
+        }
+        #final-order-list .final-member-name {
+            font-size: 14px;
+            color: #bbb;
+            margin-left: 8px;
+        }        
+        .hidden { display: none !important; }
+                
+    </style>
+  </head>
+  <body>
+  <div id="loading-overlay" class="hidden"><div class="spinner"></div></div>
+
+  <div class="main-container" id="main-container">
+      <div class="content-box">
+          <div class="controls-header">
+              <div class="draft-toggles">
+                  <div class="draft-order-toggle">
+                      <label class="switch"><input type="checkbox" id="randomize-order"><span class="slider"></span></label>
+                      <label for="randomize-order">Randomize Draft Order</label>
+                  </div>
+                  <div class="draft-order-toggle">
+                      <label class="switch"><input type="checkbox" id="reversal-toggle"><span class="slider"></span></label>
+                      <label for="reversal-toggle">3rd Round Reversal</label>
+                      <div class="tooltip-trigger">?
+                        <div class="tooltip-content" style="width: 380px;">
+                            <h4>Draft Order Explanation</h4>
+                            <p>3RR balances the draft by giving a better 3rd round pick to teams drafting late in the 1st. Below is an example for the first four rounds of a 6-member draft.</p>
+                            
+                            <h4>Standard Snake Draft</h4>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2" class="col-round">Round</th>
+                                        <th rowspan="2" class="col-dir">Direction</th>
+                                        <th colspan="6">Draft Slot and Pick Table</th>
+                                    </tr>
+                                    <tr>
+                                        <th>#1</th><th>#2</th><th>#3</th><th>#4</th><th>#5</th><th>#6</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="dir-right">
+                                        <td>1</td><td class="arrow">→</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td>
+                                    </tr>
+                                    <tr class="dir-left">
+                                        <td>2</td><td class="arrow">←</td><td>12</td><td>11</td><td>10</td><td>9</td><td>8</td><td>7</td>
+                                    </tr>
+                                    <tr class="dir-right">
+                                        <td>3</td><td class="arrow">→</td><td>13</td><td>14</td><td>15</td><td>16</td><td>17</td><td>18</td>
+                                    </tr>
+                                    <tr class="dir-left">
+                                        <td>4</td><td class="arrow">←</td><td>...</td><td>23</td><td>22</td><td>21</td><td>20</td><td>19</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h4 style="color: #ff913d">3rd Round Reversal</h4>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2" class="col-round">Round</th>
+                                        <th rowspan="2" class="col-dir">Direction</th>
+                                        <th colspan="6">Draft Slot and Pick Table</th>
+                                    </tr>
+                                    <tr>
+                                        <th>#1</th><th>#2</th><th>#3</th><th>#4</th><th>#5</th><th>#6</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="dir-right">
+                                        <td>1</td><td class="arrow">→</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td>
+                                    </tr>
+                                    <tr class="dir-left">
+                                        <td>2</td><td class="arrow">←</td><td>12</td><td>11</td><td>10</td><td>9</td><td>8</td><td>7</td>
+                                    </tr>
+                                    <tr class="dir-left reversal-row">
+                                        <td>3</td><td class="arrow">←</td><td>18</td><td>17</td><td>16</td><td>15</td><td>14</td><td>13</td>
+                                    </tr>
+                                    <tr class="dir-right">
+                                        <td>4</td><td class="arrow">→</td><td>19</td><td>20</td><td>21</td><td>22</td><td>23</td><td>...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                  </div>
+              </div>
+              <button type="button" class="btn-generate" id="generate-names">Generate Team Names</button>
+          </div>
+          <div class="header-row">
+              <div class="col-slot">Slot</div><div class="col-drag"></div><div class="col-name">Member Name</div><div class="col-team">Team Name</div><div class="col-remove"></div>
+          </div>
+          <div id="member-list-container"><ul id="member-list"></ul></div>
+          <div class="add-member-section"><button type="button" class="add-member-btn" id="add-member">New Member</button></div>
+      </div>
+      <div class="button-section">
+          <div class="button-row">
+              <button type="button" class="btn btn-secondary" onclick="google.script.host.close()">Cancel</button>
+              <button type="button" class="btn btn-primary" id="submit-button" onclick="handleSubmit()">Submit</button>
+          </div>
+      </div>
+  </div>
+
+  <div id="reveal-modal-overlay">
+      <div class="reveal-box">
+          <h2>Draft Order Reveal</h2>
+          <div id="reveal-pick-display"></div>
+          <ul id="final-order-list" class="hidden"></ul>
+          <div id="reveal-controls"></div>
+      </div>
+  </div>
+
+  <script>
+      const memberListEl = document.getElementById('member-list'), randomizeToggle = document.getElementById('randomize-order'), loader = document.getElementById('loading-overlay'), submitButton = document.getElementById('submit-button'), reversalToggle = document.getElementById('reversal-toggle');
+      let sortable, shuffledMembers = [], revealIndex = -1;
+
+      const NAME_GENERATOR = {
+        adjectives: {
+          A: ['Atomic', 'Armored', 'Awesome', 'Alpha', 'Arctic', 'Avenging', 'Angry', 'Aquatic', 'Absolute', 'Astral', 'Ancient', 'Aerial', 'Amber', 'Amethyst', 'Azure'],
+          B: ['Blazing', 'Blitzing', 'Brutal', 'Big', 'Blue', 'Bone-Crushing', 'Bouncing', 'Baffled', 'Berserk', 'Bionic', 'Blinding', 'Bodacious', 'Bonkers', 'Booming', 'Brawling', 'Bronze', 'Burgundy', 'Bubblegum', 'Bumbling'],
+          C: ['Cosmic', 'Charging', 'Crimson', 'Cunning', 'Crystal', 'Cyber', 'Clumsy', 'Captain\'s', 'Chaos', 'Clobbering', 'Colossal', 'Confused', 'Crazed', 'Crushing', 'Cobalt', 'Copper', 'Coral', 'Cyan'],
+          D: ['Dashing', 'Destructive', 'Diamond', 'Dynamite', 'Dark', 'Dreaded', 'Dancing', 'Dizzy', 'Demolition', 'Delirious', 'Determined', 'Devastating', 'Doomed', 'Dazzling', 'Deep', 'Denim'],
+          E: ['Electric', 'Elite', 'Emerald', 'Endzone', 'Eternal', 'Explosive', 'Extra', 'Enormous', 'Epic', 'Extreme', 'Enigmatic', 'Enraged', 'Eerie', 'Eccentric', 'Ebony', 'Eggplant'],
+          F: ['Furious', 'Fighting', 'Fantastic', 'Fearless', 'Final', 'Flying', 'Flatulent', 'Funky', 'Ferocious', 'Feral', 'Frenzied', 'Frozen', 'Fumbling', 'Fiery', 'Foolish', 'Fuchsia', 'Forest'],
+          G: ['Gridiron', 'Golden', 'Goliath', 'Galloping', 'Grand', 'Grizzly', 'Goofy', 'Grumpy', 'Gigantic', 'Gnarly', 'Groovy', 'Gladiator', 'Glorious', 'Glittering', 'Gray', 'Green', 'Garnet'],
+          H: ['Hammering', 'Heavy', 'Honolulu', 'Hazardous', 'High', 'Howling', 'Hasty', 'Hungry', 'Hulking', 'Heroic', 'Hyper', 'Hostile', 'Hilarious', 'Hazel', 'Hot'],
+          I: ['Iron', 'Invincible', 'Inferno', 'Ice', 'Imperial', 'Impact', 'Icy', 'Invisible', 'Insane', 'Immortal', 'Intense', 'Indigo', 'Ivory'],
+          J: ['Jumbo', 'Jade', 'Jiving', 'Jungle', 'Juggernaut', 'Joking', 'Jolly', 'Jamming', 'Jazzy', 'Jacked', 'Jinxed', 'Jet-Black'],
+          K: ['Killer', 'Kinetic', 'King', 'Knightly', 'Kraken', 'Kooky', 'Kamikaze', 'Khaki', 'Knockout'],
+          L: ['Lightning', 'Laser', 'Lethal', 'Lucky', 'Lunar', 'Lone', 'Lazy', 'Loud', 'Legendary', 'Lunatic', 'Lumbering', 'Lawless', 'Lavender', 'Lime', 'Lemon'],
+          M: ['Mighty', 'Mega', 'Midnight', 'Magic', 'Motor', 'Mad', 'Muddy', 'Mystic', 'Massive', 'Mayhem', 'Maniacal', 'Marauding', 'Majestic', 'Magenta', 'Maroon', 'Mint', 'Mocha'],
+          N: ['Nitro', 'Night', 'Nasty', 'Nuclear', 'Noble', 'Nervous', 'Nifty', 'Neon', 'Navy', 'Notorious', 'Numb', 'Nutty'],
+          O: ['Omega', 'Obsidian', 'Outer', 'Outlaw', 'Ominous', 'Orange', 'Ordinary', 'Outrageous', 'Orbital', 'Obnoxious', 'Olive', 'Ochre', 'Onyx'],
+          P: ['Power', 'Platinum', 'Phantom', 'Primal', 'Polar', 'Punishing', 'Puny', 'Pickled', 'Pounding', 'Psycho', 'Primetime', 'Purple', 'Pink', 'Peach', 'Pewter', 'Periwinkle'],
+          Q: ['Quicksilver', 'Quantum', 'Quaking', 'Questionable', 'Quiet', 'Quirky', 'Quivering'],
+          R: ['Raging', 'Renegade', 'Red', 'Ruthless', 'Royal', 'Rogue', 'Running', 'Robotic', 'Rampaging', 'Radical', 'Reckless', 'Rampant', 'Rowdy', 'Ruby', 'Rust', 'Rose'],
+          S: ['Savage', 'Supersonic', 'Steel', 'Shadow', 'Silver', 'Silent', 'Slippery', 'Stunt', 'Smashing', 'Screaming', 'Sensational', 'Sizzling', 'Spectacular', 'Scarlet', 'Sapphire', 'Sky', 'Slate', 'Seafoam', 'Sage', 'Salmon'],
+          T: ['Thunder', 'Turbo', 'Tidal', 'Titanium', 'Top', 'Tundra', 'Tiny', 'Tactical', 'Toxic', 'Tremendous', 'Territorial', 'Tipsy', 'Tan', 'Teal', 'Tangerine', 'Topaz', 'Taupe'],
+          U: ['Ultimate', 'Unstoppable', 'United', 'Urban', 'Undisputed', 'Undercover', 'Unhinged', 'Unreal', 'Umber', 'Ultra'],
+          V: ['Venomous', 'Vicious', 'Viking', 'Vortex', 'Valiant', 'Vengeful', 'Vibing', 'Volcanic', 'Violent', 'Victorious', 'Violet', 'Vermillion', 'Vintage'],
+          W: ['Wild', 'War', 'White', 'Wicked', 'Wonder', 'Winter', 'Wobbly', 'Wise', 'Wrecking', 'Warped', 'Wacky', 'Whirling', 'Wine', 'Wheat'],
+          X: ['X-Factor', 'Xenon', 'X-treme', 'X-Ray'],
+          Y: ['Yellow', 'Yardline', 'Yelling', 'Yodeling', 'Yoked', 'Yonder'],
+          Z: ['Zero-G', 'Zealous', 'Zombie', 'Zany', 'Zonked', 'Zippy', 'Zapping']
+        },
+        nouns: {
+          A: ['Aces', 'Armada', 'Assassins', 'Avengers', 'Anacondas', 'Archers', 'Atoms', 'Alligators', 'Amazons', 'Avalanche'],
+          B: ['Bandits', 'Barbarians', 'Bears', 'Bengals', 'Bills', 'Blitz', 'Bombers', 'Broncos', 'Browns', 'Bruisers', 'Buccaneers', 'Bullets', 'Bulldogs', 'Belles', 'Bros', 'Beasts', 'Berserkers', 'Bison', 'Barracudas', 'Behemoths', 'Buzzards', 'Badgers', 'Brawlers', 'Battalion'],
+          C: ['Cardinals', 'Chaos', 'Chargers', 'Chiefs', 'Cobras', 'Colts', 'Comets', 'Commanders', 'Commandos', 'Cowboys', 'Crusaders', 'Cyclones', 'Chicks', 'Centurions', 'Cheetahs', 'Claws', 'Cannons', 'Crew', 'Coyotes', 'Cougars'],
+          D: ['Demons', 'Destroyers', 'Dolphins', 'Dragons', 'Dudes', 'Dolls', 'Danger', 'Dynamite', 'Daredevils', 'Dawgs', 'Defenders', 'Dynasty', 'Dingos'],
+          E: ['Eagles', 'Enforcers', 'Express', 'Empire', 'Executioners', 'Elite', 'Exterminators'],
+          F: ['Falcons', 'Force', 'Fury', 'Fiends', 'Fireballs', 'Fighters', 'Fleet', 'Franchise', 'Foxes', 'Felines'],
+          G: ['Ghosts', 'Giants', 'Gladiators', 'Goliaths', 'Grenades', 'Guys', 'Gals', 'Gents', 'Gators', 'Grizzlies', 'Guardians', 'Gangsters', 'Gorillas', 'Goons', 'Gargoyles'],
+          H: ['Hammerheads', 'Hawks', 'Hitmen', 'Hooligans', 'Hunters', 'Hurricanes', 'Hyenas', 'Hornets', 'Horde', 'Hellraisers', 'Heroes', 'Huskies', 'Hydras'],
+          I: ['Impact', 'Invaders', 'Impalers', 'Infantry'],
+          J: ['Jaguars', 'Jets', 'Juggernauts', 'Jackals', 'Jokers', 'Jesters', 'Jackhammers'],
+          K: ['Knights', 'Kings', 'Killers', 'Krakens', 'Kingpins', 'Kamikazes'],
+          L: ['Lions', 'Lynx', 'Lads', 'Ladies', 'Legends', 'Legion', 'Lancers', 'Lunatics', 'Lightning', 'Lobos', 'Leviathans'],
+          M: ['Mavericks', 'Monsters', 'Marauders', 'Mammoths', 'Mercenaries', 'Militia', 'Maniacs', 'Mayhem', 'Mutants', 'Mustangs', 'Minotaurs'],
+          N: ['Nemesis', 'Ninjas', '49ers', 'Nomads', 'Nightmares', 'Nukes', 'Nasties'],
+          O: ['Outlaws', 'Ogres', 'Orcas', 'Outcasts', 'Offense', 'Owls'],
+          P: ['Packers', 'Pandas', 'Panthers', 'Patriots', 'Phantoms', 'Pioneers', 'Predators', 'Pumas', 'Punishers', 'Pirates', 'Pythons', 'Paladins', 'Polecats', 'Posse', 'Panzers'],
+          R: ['Raiders', 'Rampage', 'Rams', 'Raptors', 'Ravens', 'Rebels', 'Renegades', 'Rhinos', 'Reapers', 'Rage', 'Rogues', 'Rockets', 'Regiment', 'Rattlesnakes', 'Rottweilers'],
+          S: ['Sabers', 'Saints', 'Samurai', 'Scorpions', 'Seahawks', 'Sharks', 'Sirens', 'Slayers', 'Specters', 'Stallions', 'Stampede', 'Steelers', 'Stingrays', 'Storm', 'Swarm', 'Spartans', 'Savages', 'Serpents', 'Sentinels', 'Soldiers', 'Syndicate', 'Sasquatch'],
+          T: ['Texans', 'Tigers', 'Titans', 'Tornadoes', 'Trojans', 'Tsunami', 'Thunder', 'Terminators', 'Tyrants', 'Terrors', 'Tarantulas', 'Tribe', 'Templars'],
+          V: ['Vandals', 'Vikings', 'Vipers', 'Vixens', 'Vortex', 'Vultures', 'Valkyries', 'Vigilantes', 'Venom', 'Vampires'],
+          W: ['Warriors', 'Warlords', 'Wizards', 'Wolves', 'Wranglers', 'Wasps', 'Wildcats', 'Warthogs', 'Wreckers', 'Werewolves', 'Wraiths'],
+          X: ['X-Men', 'Xtreme'],
+          Y: ['Yetis', 'Yakuza'],
+          Z: ['Zeppelins', 'Zombies', 'Zephyrs', 'Zealots']
+        }
+      };
+
+      function showLoader() { loader.classList.remove('hidden'); }
+      function hideLoader() { loader.classList.add('hidden'); }
+
+      document.addEventListener('DOMContentLoaded', function() {
+          showLoader();
+          sortable = new Sortable(memberListEl, { animation: 150, handle: '.drag-handle', onEnd: updateDraftSlots });
+          document.getElementById('add-member').addEventListener('click', () => addMemberRow());
+          document.getElementById('generate-names').addEventListener('click', generateTeamNames);
+          randomizeToggle.addEventListener('change', toggleDragState);
+          memberListEl.addEventListener('click', handleListClick);
+          google.script.run
+            .withSuccessHandler(populateInitialData)
+            .withFailureHandler(err => { alert('Error: ' + err.message); hideLoader(); })
+            .fetchMembers();
+      });
+      
+      function populateInitialData(data) {
+        const { members, settings } = data;
+        if (members && members.length > 0) {
+            members.forEach(member => memberListEl.appendChild(createMemberRow(member)));
+        } else {
+            for(let i=0; i<3; i++) addMemberRow();
+        }
+        
+        // Set initial toggle states from saved settings
+        if (settings) {
+            reversalToggle.checked = settings.thirdRoundReversal || false;
+        }
+
+        updateDraftSlots();
+        hideLoader();
+    }
+
+      function createMemberRow(data = {}) {
+          const li = document.createElement('li');
+          li.className = 'member-row';
+          li.dataset.memberId = data.id || `new_${Date.now()}`;
+          li.innerHTML = `
+              <div class="draft-slot"></div><div class="drag-handle">☰</div>
+              <div class="col-name"><input type="text" class="member-name" placeholder="Member Name" value="${data.name || ''}"></div>
+              <div class="team-name-wrapper"><input type="text" class="team-name" placeholder="Team Name" value="${data.teamName || ''}"><button type="button" class="clear-btn">&times;</button></div>
+              <div class="member-remove"><button type="button" class="remove-btn">&times;</button></div>`;
+          return li;
+      }
+
+      function addMemberRow() { memberListEl.appendChild(createMemberRow()); updateDraftSlots(); }
+      function updateDraftSlots() { memberListEl.querySelectorAll('.member-row').forEach((row, index) => { row.querySelector('.draft-slot').textContent = index + 1; }); }
+      
+      function toggleDragState() {
+          const isRandom = randomizeToggle.checked;
+          sortable.option('disabled', isRandom);
+          memberListEl.classList.toggle('randomized', isRandom);
+          submitButton.textContent = isRandom ? 'Randomize & Submit' : 'Submit';
+      }
+      
+      function handleSubmit() {
+          // --- Step 1: Check for blank team names without modifying them yet ---
+          let blankTeamNamesExist = false;
+          memberListEl.querySelectorAll('.member-row').forEach(row => {
+              const nameInput = row.querySelector('.member-name');
+              const teamInput = row.querySelector('.team-name');
+              if (nameInput.value.trim() && !teamInput.value.trim()) {
+                  blankTeamNamesExist = true;
+              }
+          });
+
+          // --- Step 2: If blanks exist, show a confirmation dialog ---
+          if (blankTeamNamesExist) {
+              const confirmationMessage = "⚠️ Some members do not have a team name.\n\nIf you continue, they will be assigned a generic name (e.g., 'Team 1').\n\nDo you want to continue?";
+              if (!confirm(confirmationMessage)) {
+                  return; // User clicked "Cancel", so we stop the submission process.
+              }
+          }
+          
+          // --- Step 3: Proceed with submission logic (auto-fill and collect) ---
+          // This part runs if there were no blanks or if the user clicked "OK"
+          memberListEl.querySelectorAll('.member-row').forEach(row => {
+              const nameInput = row.querySelector('.member-name');
+              const teamInput = row.querySelector('.team-name');
+              if (nameInput.value.trim() && !teamInput.value.trim()) {
+                  const draftSlot = row.querySelector('.draft-slot').textContent;
+                  teamInput.value = `Team ${draftSlot}`;
+              }
+          });
+
+          shuffledMembers = [];
+          memberListEl.querySelectorAll('.member-row').forEach(row => {
+              const name = row.querySelector('.member-name').value.trim();
+              if (name) {
+                  shuffledMembers.push({
+                      id: row.dataset.memberId,
+                      name: name,
+                      teamName: row.querySelector('.team-name').value.trim()
+                  });
+              }
+          });
+
+          if (shuffledMembers.length === 0) { return alert("Please add at least one member."); }
+
+          if (randomizeToggle.checked) {
+              for (let i = shuffledMembers.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[shuffledMembers[i], shuffledMembers[j]] = [shuffledMembers[j], shuffledMembers[i]]; }
+              initiateReveal();
+          } else {
+              collectAndSubmit(shuffledMembers);
+          }
+      }
+      
+      function initiateReveal() {
+          document.getElementById('main-container').classList.add('is-revealing');
+          const revealModal = document.getElementById('reveal-modal-overlay');
+          document.getElementById('reveal-pick-display').innerHTML = '';
+          document.getElementById('final-order-list').classList.add('hidden');
+          document.getElementById('reveal-pick-display').classList.remove('hidden');
+          const controls = document.getElementById('reveal-controls');
+          controls.innerHTML = `<div class="button-row"><button type="button" class="btn btn-reveal" id="start-reveal-btn">Start Reveal</button></div>`;
+          document.getElementById('start-reveal-btn').onclick = startRevealSequence;
+          revealModal.classList.add('visible');
+      }
+
+      function startRevealSequence() {
+          revealIndex = shuffledMembers.length - 1;
+          const controls = document.getElementById('reveal-controls');
+          controls.innerHTML = `<div class="button-row">
+              <button type="button" class="btn btn-secondary" id="skip-reveal-btn">Skip to End</button>
+              <button type="button" class="btn btn-reveal" id="next-pick-btn">Next Pick</button>
+          </div>`;
+          document.getElementById('skip-reveal-btn').onclick = showFinalList;
+          document.getElementById('next-pick-btn').onclick = revealNextPick;
+          revealNextPick();
+      }
+
+      function revealNextPick() {
+          if (revealIndex < 0) return;
+          const pickNumber = revealIndex + 1;
+          const member = shuffledMembers[revealIndex];
+          document.getElementById('reveal-pick-display').innerHTML = `
+              <div class="reveal-pick-slot">${getOrdinal(pickNumber)} Pick</div>
+              <div class="reveal-team-name">${member.teamName}</div>
+              <div class="reveal-byline">under the direction of</div>
+              <div class="reveal-pick-name">${member.name}</div>
+              <br>
+              <div></div>
+          `;
+          revealIndex--;
+          if (revealIndex < 0) {
+              const nextButton = document.getElementById('next-pick-btn');
+              nextButton.textContent = "Show Full List";
+              nextButton.onclick = showFinalList;
+          }
+      }
+
+      function showFinalList() {
+          document.getElementById('reveal-pick-display').classList.add('hidden');
+          const finalListEl = document.getElementById('final-order-list');
+          finalListEl.innerHTML = '';
+          shuffledMembers.forEach((member, index) => {
+              const li = document.createElement('li');
+              li.innerHTML = `
+                  <span class="pick-num">${index + 1}.</span>
+                  <span class="final-team-name">${member.teamName}</span>
+                  <span class="final-member-name">${member.name}</span>
+              `;
+              finalListEl.appendChild(li);
+          });
+          finalListEl.classList.remove('hidden');
+          const controls = document.getElementById('reveal-controls');
+          controls.innerHTML = `<div class="button-row">
+              <button type="button" class="btn btn-secondary" id="rerun-btn">Re-Randomize</button>
+              <button type="button" class="btn btn-primary" id="accept-btn">Accept & Save</button>
+          </div>`;
+          document.getElementById('rerun-btn').onclick = () => { closeReveal(); handleSubmit(); };
+          document.getElementById('accept-btn').onclick = () => collectAndSubmit(shuffledMembers);
+      }
+      
+      function closeReveal() {
+          document.getElementById('main-container').classList.remove('is-revealing');
+          document.getElementById('reveal-modal-overlay').classList.remove('visible');
+      }
+
+      function collectAndSubmit(finalOrder) {
+        document.getElementById('main-container').classList.remove('is-revealing');
+        document.getElementById('reveal-modal-overlay').classList.remove('visible');
+        document.getElementById('final-order-list').classList.add('hidden')
+        showLoader();
+        const membersToSave = finalOrder.map((member, index) => ({
+            draftSlot: index + 1, id: member.id, name: member.name, teamName: member.teamName
+        }));
+
+        // Bundle settings with member data
+        const submissionData = {
+            members: membersToSave,
+            settings: {
+                thirdRoundReversal: reversalToggle.checked
+            }
+        };
+
+        google.script.run
+            .withSuccessHandler(() => {
+              google.script.run
+                .withSuccessHandler(() => google.script.host.close())
+                .saveMembersSuccess();
+            })
+            .withFailureHandler(err => { alert('Save failed: ' + err.message); hideLoader(); })
+            .saveMembers(submissionData); // Send the bundled object
+      }
+
+      function getOrdinal(n) { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+      function handleListClick(e){if(e.target.classList.contains('remove-btn')){e.target.closest('.member-row').remove();updateDraftSlots()}else if(e.target.classList.contains('clear-btn')){e.target.previousElementSibling.value=''}}
+      function generateTeamNames() {
+          memberListEl.querySelectorAll('.member-row').forEach(row => {
+              const teamInput = row.querySelector('.team-name');
+              if (teamInput.value.trim()) return; // Skip if already has a team name
+              let memberName = row.querySelector('.member-name');
+              if (!memberName.value) return; // Skip if no team name
+              
+              let adjective = '';
+              let noun = '';
+
+              // 75% chance to try for alliteration
+              if (Math.random() < 0.75) {
+                  memberName = memberName.value.trim();
+                  const firstLetter = memberName ? memberName.charAt(0).toUpperCase() : null;
+                  // Try to find an adjective that alliterates with the member's name
+                  if (firstLetter && NAME_GENERATOR.adjectives[firstLetter]) {
+                      const possibleAdjectives = NAME_GENERATOR.adjectives[firstLetter];
+                      adjective = possibleAdjectives[Math.floor(Math.random() * possibleAdjectives.length)];
+                  }
+              }
+
+              // If we picked an adjective, try to find a noun that alliterates with IT.
+              // Or if we didn't try for alliteration, this path will also be taken.
+              if (adjective) {
+                  const adjLetter = adjective.charAt(0).toUpperCase();
+                  if (NAME_GENERATOR.nouns[adjLetter]) {
+                      const possibleNouns = NAME_GENERATOR.nouns[adjLetter];
+                      noun = possibleNouns[Math.floor(Math.random() * possibleNouns.length)];
+                  }
+              }
+
+              // --- Fallback to complete randomness if any part failed or for the other 50% ---
+              if (!adjective || !noun) {
+                  const allAdjectiveKeys = Object.keys(NAME_GENERATOR.adjectives);
+                  const randomAdjLetter = allAdjectiveKeys[Math.floor(Math.random() * allAdjectiveKeys.length)];
+                  const randomAdjectives = NAME_GENERATOR.adjectives[randomAdjLetter];
+                  adjective = randomAdjectives[Math.floor(Math.random() * randomAdjectives.length)];
+
+                  const allNounKeys = Object.keys(NAME_GENERATOR.nouns);
+                  const randomNounLetter = allNounKeys[Math.floor(Math.random() * allNounKeys.length)];
+                  const randomNouns = NAME_GENERATOR.nouns[randomNounLetter];
+                  noun = randomNouns[Math.floor(Math.random() * randomNouns.length)];
+              }
+              
+              teamInput.value = `${adjective} ${noun}`;
+          });
+      }
+      
+    </script>
+  </body>
+</html>
