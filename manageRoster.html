@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <base target="_top">
+    <title>Manage Roster</title>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body { 
+            font-family: 'Montserrat', Arial, sans-serif; 
+            background-color: #f0f2f5; 
+            margin: 0; 
+            padding: 0; 
+            height: 100%; 
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .setup-container { 
+            width: 100%;
+            height: 100%;
+            background-color: white; 
+            display: flex; 
+            flex-direction: column;
+        }
+        
+        .main-header { 
+            background-color: #232735; 
+            color: white; 
+            padding: 10px 20px; 
+            margin: 10px 10px 0; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #overview-display {
+            font-size: 14px;
+        }
+        .header-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-control label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .main-header select { 
+            padding: 3px; 
+            border-radius: 4px; 
+            border: none; 
+            background-color: #00CEB8; 
+            color: white; 
+            font-size: 12px; 
+            font-weight: 600;
+        }
+
+        .content { 
+            display: flex; 
+            padding: 10px; 
+            gap: 10px; 
+            flex-grow: 1; 
+            min-height: 0; 
+        }
+        .roster-builder { flex: 4; }
+        .roster-snapshot { flex: 0.7; display: flex; flex-direction: column; }
+        
+        #snapshot-container { background-color: #232735; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; height: 100%; min-height: 0;  }
+        #snapshot-container {
+            /* For Firefox */
+            scrollbar-width: thin;
+            scrollbar-color: #5a5f6c transparent;
+        }
+
+        /* For Chrome, Safari, and Edge */
+        #snapshot-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #snapshot-container::-webkit-scrollbar-track {
+            background: transparent; /* Makes the track invisible */
+        }
+
+        #snapshot-container::-webkit-scrollbar-thumb {
+            background-color: #5a5f6c; 
+            border-radius: 2px;
+            border: 1px solid transparent;
+            background-clip: content-box;
+        }
+        #snapshot-container::-webkit-scrollbar-thumb:hover {
+            background-color: #777;
+        }      
+        #snapshot-container h2 { text-align: center; color: white; font-size: 12px; margin: 0 0 15px 0; flex-shrink: 0; }
+        #snapshot-items { align-items: center; display: flex; flex-direction: column; gap: 6px; flex-grow: 1; overflow-y: auto; }
+        .snapshot-pos { width: 35px; font-weight: 500; font-size: 12px; color: white; padding: 5px 5px; border-radius: 6px; text-align: center; flex-shrink: 0; }
+        .slot-count-display { font-size: 12px; color: white; font-weight: 500; text-align: center; padding-top: 15px; flex-shrink: 0; border-top: 1px solid #444; margin-top: 10px; }
+
+        .roster-table { background-color: #232735; padding: 8px; border-radius: 8px; overflow-y: auto; flex-grow: 1; }
+        .roster-table table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+        .roster-table th { color: white; padding-bottom: 10px; font-size: 12px; position: sticky; top: 0; background-color: #232735; z-index: 10; }
+        .roster-table td { padding: 8px 8px; text-align: center; vertical-align: middle; font-size: 18px; background-color: #f8f9fa; transition: background-color 0.3s ease; }
+        .roster-table td:first-child { border-radius: 6px 0 0 6px; }
+        .roster-table td:last-child { border-radius: 0 6px 6px 0; }
+        
+        .roster-table .pos-name-cell { width: 10%; text-align: center; }
+        .pos-name { font-weight: bold; font-size: 14px; padding: 8px 8px; border-radius: 5px; display: inline-block; }
+        
+        .count-control { display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .count-btn { background-color: rgba(0,0,0,0.05); color: #333; border: 1px solid rgba(0,0,0,0.1); border-radius: 50%; width: 20px; height: 20px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center;}
+        .count-btn:hover { background-color: rgba(0,0,0,0.1); }
+        .count-display { font-weight: 600; font-size: 18px; min-width: 25px; }
+        
+        .disabled-row td { background-color: #f8f9fa !important; color: #aaa; }
+        .disabled-row.clickable-row { cursor: pointer; }
+        .disabled-row .count-btn, .disabled-row .count-display { opacity: 0.5; }
+
+        .warning-value { 
+            background-color: #FF5A22; 
+            color: white; 
+            font-weight: bold; 
+            padding: 4px 12px;
+            border-radius: 6px; /* Use 50% for circle, 6px for rounded rectangle like pos elements */
+            display: inline-block;
+            vertical-align: middle;
+            line-height: normal;         
+        }
+        .tooltip-container { position: relative; display: inline-block; cursor: help; }
+        .tooltip-container .warning-icon { color: #D50A0A; font-weight: bold; margin-left: 5px; }
+        .tooltip-container:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            right: calc(100% + 10px);
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #D50A0A;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.4;
+            white-space: normal;
+            width: 250px;
+            text-align: center;
+            z-index: 100;
+            opacity: 1;
+            visibility: visible;
+        }
+        .tooltip-container-pos { position: relative; display: inline-block; cursor: help; }
+        .tooltip-container-pos .warning-icon { color: #232735; font-weight: bold; margin-left: 5px; }
+        .tooltip-container-pos:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: calc(100% + 10px);
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #232735;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.4;
+            white-space: normal;
+            width: 250px;
+            text-align: center;
+            z-index: 100;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #013369; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+        
+        .footer-actions { padding: 15px 20px; border-top: 1px solid #eee; background-color: #f8f9fa; display: flex; justify-content: space-between; gap: 10px; flex-shrink: 0; }
+        .btn { flex: 1; padding: 10px 14px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .btn-primary { background-color: #013369; color: white; }
+        .btn-primary:hover { background-color: #2067b3; }
+        .btn-secondary { background-color: #D50A0A; color: white; }
+        .btn-secondary:hover { background-color: #ff3d3d; }
+    </style>
+</head>
+<body>
+
+<div id="loading-overlay"><div class="spinner"></div></div>
+
+<div class="setup-container">
+    <div class="main-header">
+        <span id="overview-display"></span>
+        <div class="header-control">
+            <label for="ppr-select">PPR:</label>
+            <select id="ppr-select">
+                <option value="1.0">1.0</option>
+                <option value="0.5">0.5</option>
+                <option value="0.0">0.0</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="roster-builder">
+            <div class="roster-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; padding-left: 12px;">Position</th>
+                            <th>Count</th>
+                            <th>Extra Copies</th>
+                            <th>Required</th>
+                            <th>Available</th>
+                        </tr>
+                    </thead>
+                    <tbody id="roster-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="roster-snapshot">
+            <div id="snapshot-container">
+                <h2>Roster</h2>
+                <div id="snapshot-items"></div>
+                <div id="slot-count-display" class="slot-count-display">0 Slots</div>
+            </div>
+        </div>
+    </div>
+    <div class="footer-actions">
+        <button class="btn btn-secondary" onclick="handleCancel()">Cancel</button>
+        <button class="btn btn-primary" onclick="handleSave()">Submit</button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const posMeta = {
+            'QB':    { baseColor: '#FF2A6D', altColor: '#C82256', textColor: '#333', starters: 2.0 },
+            'RB':    { baseColor: '#00CEB8', altColor: '#00A493', textColor: '#333', starters: 3.1 },
+            'WR':    { baseColor: '#58A7FF', altColor: '#4482C6', textColor: '#333', starters: 4.2 },
+            'TE':    { baseColor: '#FFAE58', altColor: '#CD8B45', textColor: '#333', starters: 2.0 },
+            'FLX':   { baseColor: '#FFF858', altColor: '#CAC444', textColor: '#333',   starters: 0 },
+            'SPFLX': { baseColor: '#E22D24', altColor: '#B8251E', textColor: 'white', starters: 0 },
+            'DEF':   { baseColor: '#7988A1', altColor: '#5D697D', textColor: '#333', starters: 2.0 },
+            'K':     { baseColor: '#BD66FF', altColor: '#9650CB', textColor: '#333', starters: 2.0 },
+        };
+        const posOrder = ['QB', 'RB', 'WR', 'TE', 'FLX', 'SPFLX', 'DEF', 'K'];
+        const initialRosterConfig = { 'QB': 1, 'RB': 2, 'WR': 2, 'TE': 1, 'FLX': 1, 'DEF': 1, 'K': 1, 'SPFLX': 0 };
+
+        const rosterBody = document.getElementById('roster-body');
+        const snapshotItems = document.getElementById('snapshot-items');
+        const overviewDisplay = document.getElementById('overview-display');
+        const slotCountDisplay = document.getElementById('slot-count-display');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const pprSelect = document.getElementById('ppr-select');
+
+        const state = { roster: [], members: 0, membersStored: false, matchups: 0, matchupsStored: false, week: undefined, ppr: '0.5' };
+
+        function initialize() {
+            posOrder.forEach(pos => {
+                state.roster.push({ pos, count: initialRosterConfig[pos] || 0, duplicates: 0 });
+            });
+            pprSelect.addEventListener('change', (e) => { state.ppr = e.target.value; });
+            fetchInitialData();
+        }
+
+        function fetchInitialData() {
+            google.script.run
+                .withSuccessHandler(applyInitialData)
+                .withFailureHandler(error => {
+                    console.error('⚠️ Failed to fetch initial data:', error);
+                    applyInitialData({ members: 6, membersStored: false, matchups: 0, matchupsStored: false, week: undefined, ppr: '0.5' });
+                })
+                .fetchRoster();
+        }
+
+        function applyInitialData(data) {
+            // Always use the most current participant and game counts
+            state.members = data.members || 6;
+            state.membersStored = data.membersStored;
+            state.matchups = data.matchups || 3;
+            state.matchupsStored = data.matchupsStored;
+            state.week = data.week || null;
+            state.ppr = data.ppr || "0.5";
+            pprSelect.value = state.ppr;
+
+            // If there's a saved roster state, apply its structure (counts and duplicates)
+            if (data.roster && data.roster.length > 0) {
+                data.roster.forEach(savedPos => {
+                    const existingPos = state.roster.find(p => p.pos === savedPos.pos);
+                    if (existingPos) {
+                        existingPos.count = savedPos.count;
+                        existingPos.duplicates = savedPos.duplicates;
+                    }
+                });
+            } else {
+                // If no data is saved, run the initial duplicate calculation
+                calculateInitialDuplicates();
+            }
+            
+            // Update the header display
+            let headerText = ``;
+            if (state.week) {
+              headerText = `Week ${state.week} c`
+            } else {
+              headerText = `C`;
+            }
+            headerText += `ontest ${state.membersStored ? 'incudes' : 'assumes'} ${state.members} members with ${state.matchupsStored ? '' : 'an assumed '}${state.matchups} NFL Matches`;
+            overviewDisplay.textContent = headerText;
+
+            render();
+            loadingOverlay.classList.add('hidden');
+        }
+
+        function calculateInitialDuplicates() {
+            state.roster.forEach(p => {
+                if (p.count > 0 && posMeta[p.pos].starters > 0) {
+                    const required = p.count * state.members;
+                    const available = Math.round(state.matchups * posMeta[p.pos].starters);
+                    if (required > available && available > 0) {
+                        // The formula finds the total number of sets needed, then subtracts the original set.
+                        p.duplicates = Math.ceil(required / available) - 1;
+                    }
+                }
+            });
+        }
+        
+        function updateCalculations() {
+            const surpluses = { QB: 0, RB: 0, WR: 0, TE: 0 };
+            state.roster.forEach(p => {
+                p.required = p.count * state.members;
+
+                if (posMeta[p.pos].starters > 0) {
+                    const baseAvailable = Math.round(state.matchups * posMeta[p.pos].starters);
+                    const totalPlayerPool = baseAvailable * (p.duplicates + 1);
+
+                    // --- THIS IS THE FIX ---
+                    // The 'Available' column will now display the TOTAL player pool.
+                    p.available = totalPlayerPool;
+
+                    // The warning logic correctly compares 'required' against the total pool.
+                    p.warning = p.count > 0 && p.required > totalPlayerPool;
+
+                    // The surplus calculation correctly uses the total pool.
+                    const surplus = totalPlayerPool - (p.count > 0 ? p.required : 0);
+                    if (surpluses[p.pos] !== undefined) {
+                        surpluses[p.pos] = Math.max(0, surplus);
+                    }
+                } else {
+                    // Logic for flex positions remains the same
+                    p.available = 'N/A';
+                    p.warning = false;
+                }
+            });
+
+            // The rest of the function for FLX and SPFLX is unchanged and will now
+            // work correctly because the 'surpluses' are calculated properly.
+            const flxPos = state.roster.find(p => p.pos === 'FLX');
+            if (flxPos) {
+                flxPos.available = surpluses.RB + surpluses.WR + surpluses.TE;
+                flxPos.warning = flxPos.count > 0 && flxPos.required > flxPos.available;
+            }
+
+            const spflxPos = state.roster.find(p => p.pos === 'SPFLX');
+            if (spflxPos) {
+                const flxRequired = (flxPos && flxPos.count > 0) ? flxPos.required : 0;
+                const totalFlexPool = surpluses.QB + surpluses.RB + surpluses.WR + surpluses.TE;
+                spflxPos.available = Math.max(0, totalFlexPool - flxRequired);
+                spflxPos.warning = spflxPos.count > 0 && spflxPos.required > spflxPos.available;
+            }
+        }
+
+        function render() {
+            updateCalculations();
+            rosterBody.innerHTML = '';
+            snapshotItems.innerHTML = '';
+            let totalRosterSlots = 0;
+
+            state.roster.forEach(p => {
+                const meta = posMeta[p.pos];
+                const isActive = p.count > 0;
+                const tr = document.createElement('tr');
+                tr.className = !isActive ? 'disabled-row clickable-row' : 'active-row';
+                if (!isActive) tr.onclick = () => reEnableRow(p.pos);
+
+                // --- Build cell content dynamically ---
+                let duplicatesCellContent = `<td><div class="count-control"><button class="count-btn" onclick="updateDuplicatesCount('${p.pos}', -1)" ${!isActive ? 'disabled' : ''}>-</button><span class="count-display">${p.duplicates}</span><button class="count-btn" onclick="updateDuplicatesCount('${p.pos}', 1)" ${!isActive ? 'disabled' : ''}>+</button></div></td>`;
+                if (p.pos === 'FLX' || p.pos === 'SPFLX') {
+                    duplicatesCellContent = `<td>—</td>`;
+                }
+
+                let availableCellContent = `${(p.pos != 'QB' && p.pos != 'DEF' && p.pos != 'K') ? '~' : ''}${p.available}`;
+                if(p.warning) {
+                    let totalAvailable = p.available;
+                    let lastLine = `Increase duplicates of ${p.pos} to meet demand.`;
+                    if (p.pos === 'FLX') {
+                        lastLine = `Add duplicate RBs, WRs, or TEs to resolve the deficit.`;
+                    } else if (p.pos === 'SPFLX') {
+                        lastLine = `Add duplicate QBs, RBs, WRs, or TEs to resolve the deficit.`;
+                    } else {
+                      totalAvailable = p.available * p.duplicates;
+                    }
+                    const tooltipText = `⚠️ ${p.pos} DEFICIT!\nRoster requires filling ${p.required} slots and ${(p.pos != 'QB' && p.pos != 'DEF' && p.pos != 'K') ? '~': ''}${totalAvailable} available.\n${lastLine}`
+                    availableCellContent = `<div class="tooltip-container" data-tooltip="${tooltipText}">${(p.pos != 'QB' && p.pos != 'DEF' && p.pos != 'K') ? '~' : ''}${p.available}</div>`;
+                }
+                let positionString = p.pos;
+                if (p.pos === 'FLX') {
+                  positionString = `<div class="tooltip-container-pos" data-tooltip="FLEX Position includes RB, WR, and TE eligible players">${p.pos}</div>`
+                } else if (p.pos === 'SPFLX') {
+                  positionString = `<div class="tooltip-container-pos" data-tooltip="SUPERFLEX Position includes QB, RB, WR, and TE eligible players">${p.pos}</div>`
+                }
+                tr.innerHTML = `
+                    <td class="pos-name-cell"><span class="pos-name" style="width: 42px; text-align: center; font-weight: 500; background-color: ${isActive ? meta.baseColor : '#B0B8C5'}; color: ${meta.textColor};">${positionString}</span></td>
+                    <td><div class="count-control"><button class="count-btn" onclick="updatePositionCount('${p.pos}', -1)">-</button><span class="count-display">${p.count}</span><button class="count-btn" onclick="updatePositionCount('${p.pos}', 1)">+</button></div></td>
+                    ${duplicatesCellContent}
+                    <td>${p.required}</td>
+                    <td>${p.warning ? `<span class="warning-value">${availableCellContent}</span>` : availableCellContent}</td>
+                `;
+
+                Array.from(tr.children).forEach(td => {
+                    td.style.backgroundColor = isActive ? meta.altColor : '#f0f2f5';
+                    if (isActive) td.style.color = 'white';
+                });
+                rosterBody.appendChild(tr);
+
+                if (isActive) {
+                    for (let i = 0; i < p.count; i++) {
+                        const posDiv = document.createElement('div');
+                        posDiv.className = 'snapshot-pos';
+                        posDiv.textContent = p.pos;
+                        posDiv.style.backgroundColor = meta.baseColor;
+                        posDiv.style.color = meta.textColor;
+                        snapshotItems.appendChild(posDiv);
+                        totalRosterSlots++;
+                    }
+                }
+            });
+            slotCountDisplay.textContent = `${totalRosterSlots} Slots`;
+        }
+
+        window.reEnableRow = (pos) => {
+            const position = state.roster.find(p => p.pos === pos);
+            if (position) position.count = 1;
+            render();
+        };
+
+        window.updatePositionCount = (pos, delta) => {
+            event.stopPropagation();
+            const position = state.roster.find(p => p.pos === pos);
+            if (position) position.count = Math.max(0, position.count + delta);
+            render();
+        };
+        
+        window.updateDuplicatesCount = (pos, delta) => {
+            event.stopPropagation();
+            const position = state.roster.find(p => p.pos === pos);
+            if(position && position.count > 0) position.duplicates = Math.max(0, position.duplicates + delta);
+            render();
+        };
+        
+        window.handleCancel = () => { google.script.host.close(); };
+        
+        window.handleSave = () => {
+            const btn = document.querySelector('.btn-primary');
+            loadingOverlay.classList.remove('hidden');
+            btn.disabled = true;
+            
+            // The state object is already up-to-date, so we just pass it.
+            google.script.run
+                .withSuccessHandler(() => {
+                  google.script.run
+                    .withSuccessHandler(() => google.script.host.close())
+                    .saveRosterSuccess();
+                })
+                .withFailureHandler(error => { 
+                    loadingOverlay.classList.add('hidden');
+                    alert('Error: ' + error.message);
+                    btn.disabled = false; 
+                })
+                .saveRoster(state);
+        };
+
+        initialize();
+        
+    });
+</script>
+
+</body>
+</html>
