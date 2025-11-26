@@ -1,0 +1,452 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <base target="_top">
+    <title>Final Confirmation</title>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body { 
+            font-family: 'Montserrat', Arial, sans-serif; 
+            margin: 0; padding: 0; background-color: #f0f2f5; 
+            overflow: hidden; height: 100%;
+        }
+        
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.85); display: flex; justify-content: center; align-items: center; z-index: 100; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #013369; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .main-container { width: 100%; height: 100%; background-color: white; display: flex; flex-direction: column; }
+        .content-grid { display: flex; gap: 20px; padding: 20px; flex-grow: 1; min-height: 0; }
+        
+        .content-box {
+            background-color: #232735;
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            border: 3px solid transparent;
+            transition: border-color 0.3s ease;
+        }
+        .content-box.alert-mode {
+            border-color: #ff913d;
+        }
+        .content-box.warning-mode {
+            border-color: #FFC107; /* A distinct yellow/gold for warnings */
+        }
+        .content-box.warning-mode h2 span.status-warning {
+            font-size: 11px;
+            color: #FFC107;
+            font-weight: 600;
+        }
+        .edit-btn.warning-mode {
+            background-color: #FFC107;
+            color: #232735; /* Dark text for better contrast on yellow */
+        }
+        .edit-btn.warning-mode:hover {
+            background-color: #ffd24d;
+        }
+        .content-box h2 {
+            margin: 0 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #4a4f5c;
+            color: #FFFFFF;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            vertical-align: top;
+            align-items: center;
+        }
+        .content-box.pending-mode {
+            border: none;
+        }
+        .content-box.pending-mode h2 span.status-pending {
+            font-size: 11px;
+            color: #d9d9d9;
+            font-weight: 600;
+        }
+        .content-box.alert-mode h2 span.status-incomplete {
+            font-size: 11px;
+            color: #ff913d;
+            font-weight: 600;
+        }        
+        .content-box.no-alert-mode {
+            border: none;
+        }
+        .content-box.no-alert-mode h2 span.status-complete {
+            font-size: 11px;
+            color: #00CEB8;
+            font-weight: 600;
+        }
+        
+        .explanation-text {
+            flex-grow: 1;
+            color: #ccc;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 10px;
+        }
+
+        .box-footer {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #4a4f5c;
+        }
+        .edit-btn {
+            width: 100%;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 12px;
+            background-color: #00CEB8;
+            border: none;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .edit-btn:hover { background-color: #00EBCF; }
+        .edit-btn.alert-mode {
+            width: 100%;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 12px;
+            background-color: #ff913d;
+            border: none;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .edit-btn.alert-mode:hover { background-color: #e86705; }
+        
+        .overview-details { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
+        }
+
+        .overview-item { display: flex; justify-content: space-between; align-items: center; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #3D4254; }
+        .overview-item:last-child { border-bottom: none; }
+        .overview-item .label { color: #ccc; }
+        .overview-item .value { font-weight: 600; }
+        #draft-order-container { margin-top: 15px; flex-grow: 1; overflow-y: auto; }
+        .draft-order-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+        .draft-order-table th, .draft-order-table td { border: 1px solid #4a4f5c; text-align: left; vertical-align: middle; }
+        .draft-order-table th { padding: 4px; font-size: 12px; }
+        .draft-order-table td { padding: 8px; }
+        .draft-order-table thead th { background-color: #3D4254; font-weight: 600; text-align: center; }
+        .draft-order-table .col-slot { width: 22px; text-align: center; font-weight: 700; }
+        .draft-order-table .team-name { font-size: 11px; font-weight: 700; color: #888 }
+        
+        #snapshot-table-container, #games-list-container { 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            min-height: 0;
+            overflow-x: hidden;
+        }
+        .snapshot-table { width: 90%; border-collapse: collapse; }
+        .snapshot-table thead th { color: #ccc; font-size: 12px; font-weight: 600; text-transform: uppercase; text-align: center; padding-bottom: 7px; }
+        .snapshot-table .header-pos { text-align: center; font-size: 10px; margin-left: 22px }
+        .snapshot-table .header-dupes { text-align: center; font-size: 10px; }
+        .snapshot-table td { vertical-align: middle; padding: 3px 0; }
+        .snapshot-pos { width: 36px; height: 22px; font-weight: 500; font-size: 12px; padding: 0px 4px; margin-left: 22px; color: #333; border-radius: 6px; display: flex; justify-content: center; align-items: center; }
+        .duplicates-cell { font-size: 14px; font-weight: 700; color: #ccc; text-align: center; }
+        .snapshot-spacer-row td { padding: 0; height: 1px; border-bottom: 1px solid #4a4f5c; }
+        .warning-pos { outline: 3px solid #ff913d; outline-offset: 0px; position: relative; }
+        .warning-pos::after { content: attr(data-tooltip); visibility: hidden; opacity: 0; position: absolute; bottom: 110%; left: calc(100% + 32px); transform: translateX(-50%); background-color: #D50A0A; color: white; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 500; white-space: pre-wrap; width: 160px; text-align: center; z-index: 100; transition: opacity 0.3s; }
+        .warning-pos:hover::after { visibility: visible; opacity: 1; }
+        
+        .game-table { width: 100%; border-collapse: collapse; }
+        .game-table td { padding: 8px 0; font-size: 14px; border-bottom: 1px solid #3D4254; vertical-align: middle; }
+        .game-table tr:last-child td { border-bottom: none; }
+        .game-table .away-col { text-align: right; }
+        .game-table .vs-col { text-align: center; color: #888; width: 30px; }
+        .game-table .home-col { text-align: left; }
+        .team-logo { width: 24px; height: 24px; vertical-align: middle; }
+        .team-abbr { font-weight: 600; margin: 0 8px; }
+
+        .hidden { display: none !important; }
+        .button-section { padding: 15px 20px; border-top: 1px solid #eee; background-color: #f8f9fa; flex-shrink: 0; }
+        .button-row { display: flex; gap: 8px; }
+        .btn { flex: 1; padding: 8px 14px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: 600; transition: background-color 0.3s ease; }
+        .btn-primary { background-color: #013369; color: white; }
+        .btn-primary:hover { background-color: #2067b3; }
+        .btn-secondary { background-color: #D50A0A; color: white; }
+        .btn-secondary:hover { background-color: #ff3d3d; }
+        .btn-alert { background-color: #ff913d; color: white; }
+        .btn-alert:hover { background-color: #e86705; }
+
+        .overview-details, #snapshot-table-container, #games-list-container {
+            /* For Firefox */
+            scrollbar-width: thin;
+            scrollbar-color: #5a5f6c transparent;
+        }
+
+        /* For Chrome, Safari, and Edge */
+        .overview-details::-webkit-scrollbar,
+        #snapshot-table-container::-webkit-scrollbar,
+        #games-list-container::-webkit-scrollbar {
+            width: 8px; /* Width of the scrollbar */
+        }
+
+        .overview-details::-webkit-scrollbar-track,
+        #snapshot-table-container::-webkit-scrollbar-track,
+        #games-list-container::-webkit-scrollbar-track {
+            background: transparent; /* Makes the track invisible */
+        }
+
+        .overview-details::-webkit-scrollbar-thumb,
+        #snapshot-table-container::-webkit-scrollbar-thumb,
+        #games-list-container::-webkit-scrollbar-thumb {
+            background-color: #5a5f6c; /* The dark gray color of the handle */
+            border-radius: 4px;      /* Rounded corners for the handle */
+            border: 2px solid transparent; /* Creates padding around the handle */
+            background-clip: content-box;
+        }
+
+        .overview-details::-webkit-scrollbar-thumb:hover,
+        #snapshot-table-container::-webkit-scrollbar-thumb:hover,
+        #games-list-container::-webkit-scrollbar-thumb:hover {
+            background-color: #777; /* A slightly lighter gray on hover */
+        }        
+    </style>
+</head>
+<body>
+
+<div id="loading-overlay" class="hidden"><div class="spinner"></div></div>
+
+<div class="main-container">
+    <div class="content-grid">
+        <div class="content-box pending-mode">
+            <h2><span>1. Members & Order<br><span class="status-pending">Checking...</span></span></h2>
+            <div class="overview-details"></div>
+            <div class="box-footer"><button class="edit-btn" onclick="editMembers()">Set Up Members & Draft</button></div>
+        </div>
+        <div class="content-box pending-mode">
+            <h2><span>2. Selected Games<br><span class="status-pending">Checking...</span></span></h2>
+            <div class="overview-details"></div>
+            <div class="box-footer"><button class="edit-btn" onclick="editGames()">Set Up Matchups</button></div>
+        </div>
+        <div class="content-box pending-mode">
+            <h2><span>3. Roster & Scoring<br><span class="status-pending">Checking...</span></span></h2>
+            <div class="overview-details"></div>
+            <div class="box-footer"><button class="edit-btn" onclick="editRoster()">Set Up Roster</button></div>
+        </div>
+    </div>
+    <div class="button-section">
+        <div class="button-row">
+            <button type="button" class="btn btn-secondary" onclick="google.script.host.close()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="handleSubmit()">Submit Setup</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const loader = document.getElementById('loading-overlay');
+    function showLoader() { loader.classList.remove('hidden'); }
+    function hideLoader() { loader.classList.add('hidden'); }
+
+    const posMeta = { 'QB':{c:'#FF2A6D',t:'#333'},'RB':{c:'#00CEB8',t:'#333'},'WR':{c:'#58A7FF',t:'#333'},'TE':{c:'#FFAE58',t:'#333'},'FLX':{c:'#FFF858',t:'#333'},'SPFLX':{c:'#E22D24',t:'white'},'DEF':{c:'#7988A1',t:'#333'},'K':{c:'#BD66FF',t:'#333'}};
+
+    document.addEventListener('DOMContentLoaded', () => {
+        showLoader();
+        google.script.run
+            .withSuccessHandler(populateData)
+            .withFailureHandler(err => { 
+              google.script.host.close();
+              alert(`⚠️ ${err.message}`); hideLoader();
+            })
+            .fetchFinalConfirmationData();
+    });
+    
+    function populateData(data) {
+        let isConfigValid = true;
+        const membersBox = document.querySelector('.content-box:nth-child(1)');
+        const gamesBox = document.querySelector('.content-box:nth-child(2)');
+        const rosterBox = document.querySelector('.content-box:nth-child(3)');
+        const submitButton = document.querySelector('.btn-primary');
+        const cancelButton = document.querySelector('.btn-secondary');
+
+        let membersIncomplete = (!data.members || data.members.length === 0);
+        if (membersIncomplete) {
+          console.log(`❌ No members data provided`);
+        } else {
+          console.log(`✅ Members data found`);
+        }
+        let matchupsIncomplete = (!data.matchups || data.matchups.length === 0)
+        if (matchupsIncomplete) {
+          console.log(`❌ No matchup data provided`);
+        } else {
+          console.log(`✅ Matchup data found`);
+        }
+        let rosterIncomplete = true;
+        let rosterHasWarnings = false;
+        try {
+          const rosterCount = data.roster.reduce((sum, obj) => sum + obj.count, 0);
+          rosterIncomplete = rosterCount == 0;
+          rosterHasWarnings = !rosterIncomplete && data.roster.some(pos => pos.warning === true);
+          if (rosterHasWarnings) {
+            console.log(`⚠️ Roster data found with warnings`);
+          } else {
+            console.log(`✅ Roster data found`);
+          }
+        } catch (err) {
+          console.log(`❌ No roster data provided`);
+        }
+        
+        // Explanation Text Constants
+        const membersExplanation = '<div class="explanation-text">This is the first step. You will add members, generate team names, and set the draft order (manual, random, and 3rd round reversal options).</div>';
+        const gamesExplanation = '<div class="explanation-text">In this step, you will select the NFL matchups for the week that will be included in your fantasy competition.</div>';
+        const rosterExplanation = '<div class="explanation-text">Finally, you will configure the roster structure, setting the number of players for each position (QB, RB, etc.) and the scoring format (PPR).</div>';
+
+        // --- BOX 1: MEMBERS & DRAFT ---
+        const membersContent = membersBox.querySelector('.overview-details');
+        const membersButton = membersBox.querySelector('.edit-btn');
+        if (membersIncomplete) {
+            isConfigValid = false;
+            membersBox.className = 'content-box alert-mode';
+            membersBox.querySelector('h2').innerHTML = '<span>1. Members & Order<br><span class="status-incomplete">INCOMPLETE</span></span>';
+            membersButton.className = 'edit-btn alert-mode';
+            membersButton.textContent = 'Set Up Members & Draft';
+            membersContent.innerHTML = membersExplanation;
+        } else {
+            membersBox.className = 'content-box no-alert-mode';
+            membersBox.querySelector('h2').innerHTML = '<span>1. Members & Draft<br><span class="status-complete">COMPLETE</span></span>';
+            membersButton.textContent = 'Edit Members & Draft';
+            const sortedMembers = [...data.members].sort((a, b) => a.draftSlot - b.draftSlot);
+            let draftTableHTML = '<table class="draft-order-table"><thead><tr><th class="col-slot">Slot</th><th>Manager & Team</th></tr></thead><tbody>';
+            sortedMembers.forEach(member => {
+                draftTableHTML += `<tr><td class="col-slot" style="font-size: 20px">${member.draftSlot}</td><td>${member.name}<br><span class="team-name">${member.teamName}</span></td></tr>`;
+            });
+            draftTableHTML += '</tbody></table>';
+            membersContent.innerHTML = `
+                <div class="overview-item"><span class="label">3rd Round Reversal</span><span class="value">${data.configuration.thirdRoundReversal ? 'On' : 'Off'}</span></div>
+                <div class="overview-item"><span class="label">Members</span><span class="value">${data.members.length}</span></div>
+                <div id="draft-order-container">${draftTableHTML}</div>`;
+        }
+        
+        // --- BOX 2: MATCHUPS ---
+        const gamesContent = gamesBox.querySelector('.overview-details');
+        const gamesButton = gamesBox.querySelector('.edit-btn');
+        if (matchupsIncomplete) {
+            isConfigValid = false;
+            gamesBox.className = 'content-box alert-mode';
+            gamesBox.querySelector('h2').innerHTML = '<span>2. Selected Games<br><span class="status-incomplete">INCOMPLETE</span></span>';
+            gamesButton.className = 'edit-btn alert-mode';
+            gamesButton.textContent = 'Set Up Matchups';
+            gamesContent.innerHTML = gamesExplanation;
+        } else {
+            gamesBox.className = 'content-box no-alert-mode';
+            gamesBox.querySelector('h2').innerHTML = '<span>2. Selected Games<br><span class="status-complete">COMPLETE</span></span>';
+            gamesButton.textContent = 'Edit Games';
+            let gameTableHTML = '<table class="game-table"><tbody>';
+            data.matchups.forEach(game => {
+                gameTableHTML += `<tr><td class="away-col"><span class="team-abbr">${game.awayTeamAbbr}</span><img src="${game.awayTeamLogo}" class="team-logo"></td><td class="vs-col">@</td><td class="home-col"><img src="${game.homeTeamLogo}" class="team-logo"><span class="team-abbr">${game.homeTeamAbbr}</span></td></tr>`;
+            });
+            gameTableHTML += '</tbody></table>';
+            gamesContent.innerHTML = `
+                <div class="overview-item"><span class="label">Contest Week</span><span class="value">${data.currentWeek}</span></div>
+                <div class="overview-item"><span class="label">Matchups</span><span class="value">${data.matchups.length}</span></div>
+                <div id="games-list-container">${gameTableHTML}</div>`;
+        }
+        
+        // --- BOX 3: ROSTER (WITH NEW WARNING LOGIC) ---
+        const rosterContent = rosterBox.querySelector('.overview-details');
+        const rosterButton = rosterBox.querySelector('.edit-btn');
+        if (rosterIncomplete) {
+            isConfigValid = false;
+            rosterBox.className = 'content-box alert-mode';
+            rosterBox.querySelector('h2').innerHTML = '<span>3. Roster & Scoring<br><span class="status-incomplete">INCOMPLETE</span></span>';
+            rosterButton.className = 'edit-btn alert-mode';
+            rosterButton.textContent = 'Set Up Roster';
+            rosterContent.innerHTML = rosterExplanation;
+        } else if (rosterHasWarnings) {
+            // This is the new state
+            rosterBox.className = 'content-box warning-mode'; // Use yellow border
+            rosterBox.querySelector('h2').innerHTML = '<span>3. Roster & Scoring<br><span class="status-warning">WARNING</span></span>';
+            rosterButton.className = 'edit-btn warning-mode'; // Use yellow button
+            rosterButton.textContent = 'Revise Roster';
+            // (We still populate the content below, as the data exists)
+        } else {
+            rosterBox.className = 'content-box no-alert-mode';
+            rosterBox.querySelector('h2').innerHTML = '<span>3. Roster & Scoring<br><span class="status-complete">COMPLETE</span></span>';
+            rosterButton.textContent = 'Edit Roster';
+        }
+        
+        // This part runs for both "COMPLETE" and "WARNING" states
+        if (!rosterIncomplete) {
+            let snapshotTableHTML = '<table class="snapshot-table"><thead><tr><th class="header-pos">Roster Positions</th><th class="header-dupes">Clones Per Position</th></tr></thead><tbody>';
+            const activeRoster = data.roster.filter(p => p.count > 0);
+            let totalSlots = activeRoster.reduce((sum, pos) => sum + pos.count, 0);
+            
+            activeRoster.forEach((pos, index) => {
+                for (let i = 0; i < pos.count; i++) {
+                    let warningClass = pos.warning ? 'warning-pos' : '';
+                    let tooltip = pos.warning ? `data-tooltip="⚠️ ${pos.pos} DEFICIT! Not enough players may be available."` : '';
+                    snapshotTableHTML += `<tr><td><div class="snapshot-pos ${warningClass}" style="background-color:${posMeta[pos.pos].c}; color:${posMeta[pos.pos].t};" ${tooltip}>${pos.pos}</div></td>`;
+                    if (i === 0) {
+                        snapshotTableHTML += `<td class="duplicates-cell" rowspan="${pos.count}">${(pos.pos === 'FLX' || pos.pos === 'SPFLX') ? '—' : pos.duplicates}</td>`;
+                    }
+                    snapshotTableHTML += '</tr>';
+                }
+                if (index < activeRoster.length - 1) {
+                    snapshotTableHTML += '<tr class="snapshot-spacer-row"><td colspan="2"></td></tr>';
+                }
+            });
+            snapshotTableHTML += '</tbody></table>';
+            
+            rosterContent.innerHTML = `
+                <div class="overview-item"><span class="label">PPR Format</span><span class="value">${parseFloat(data.configuration.ppr || 0).toFixed(1)}</span></div>
+                <div class="overview-item"><span class="label">Slots to Fill</span><span class="value">${totalSlots}</span></div>
+                <div id="snapshot-table-container"><br>${snapshotTableHTML}</div>`;
+        }
+
+        // --- FINAL SUBMIT BUTTON STATE ---
+        if (!isConfigValid) {
+            submitButton.className = 'btn btn-alert';
+            submitButton.disabled = true;
+            submitButton.textContent = 'Setup Incomplete';
+            submitButton.classList.add('hidden');
+            cancelButton.textContent = 'Close';
+        }
+        
+        hideLoader();
+      }
+
+      window.editMembers = function() { 
+          console.log(`👥 Launching member manager...`);
+          showLoader(); 
+          google.script.run.manageMembers();
+          setTimeout(google.script.host.close, 1000);
+      }
+
+      window.editGames = function() { 
+          console.log(`📆 Launching matchup manager...`);
+          showLoader(); 
+          google.script.run.manageMatchups();
+          setTimeout(google.script.host.close, 1000);
+      }
+
+      window.editRoster = function() { 
+          console.log(`🧮 Launching roster manager...`);
+          showLoader(); 
+          google.script.run.manageRoster();
+          setTimeout(google.script.host.close, 1000);
+      }
+
+      window.handleSubmit = function() {
+          console.log(`📥 Submitting content!`);
+          showLoader();
+          google.script.run
+              .withSuccessHandler(() => {
+                  google.script.host.close();
+              })
+              .processFinalSetup();
+      }
+</script>
+</body>
+</html>
