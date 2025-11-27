@@ -32,15 +32,15 @@ function sleeperLiveScoringOff() {
 }
 
 // SHOW/HIDE SCORING
-function scoringShow() {
-  toggleScoringCells(true);
+function scoringShow(silent) {
+  toggleScoringCells(true,silent);
 }
 
-function scoringHide() {
-  toggleScoringCells(false);
+function scoringHide(silent) {
+  toggleScoringCells(false,silent);
 }
 
-function toggleScoringCells(visible) {
+function toggleScoringCells(visible,silent) {
   visible = visible == undefined ? false : visible;
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet()
@@ -57,11 +57,11 @@ function toggleScoringCells(visible) {
     // Hide/show last two rows
     const lastTwoRows = sheet.getRange(maxRows - 1, 1, 2, 1);
     visible ? sheet.unhideRow(lastTwoRows) : sheet.hideRow(lastTwoRows);
-    ss.toast(visible ? `Scoring cells revealed.` : `Scoring cells hidden`,`${visible ? '👀' : '😶‍🌫️'} SCORING ${visible ? 'SHOWN' : 'HIDDEN'}`);
+    if (!silent) ss.toast(visible ? `Scoring cells revealed.` : `Scoring cells hidden`,`${visible ? '👀' : '😶‍🌫️'} SCORING ${visible ? 'SHOWN' : 'HIDDEN'}`);
     return visible;
   } catch (err) {
     Logger.log(`Error ${visible ? 'revealing' : 'hiding'} scoring cells on the "ROSTERS" sheet, try unhiding manually: ${err.stack}`);
-    if (visible) ss.toast(`Unable to reveal scoring columns and final rows on the "ROSTERS" sheet, try unhiding manually.`,`⚠️ SCORING REVEAL ERROR`);
+    if (visible && !silent) ss.toast(`Unable to reveal scoring columns and final rows on the "ROSTERS" sheet, try unhiding manually.`,`⚠️ SCORING REVEAL ERROR`);
   }
 }
 
@@ -148,9 +148,6 @@ function sleeperScoringLogging() {
   // scoreRange.setValues(data);
 
   if (contestComplete()) {
-    scoringShow();
-    ss.toast(`Updated scores for all players in week ${week} successfully`,`✏️ SCORES UPDATED`);
-  } else {
     ss.toast(`Trigger for live scoring disabled, matchups are all complete. Checking for winner.`,`🏆 WINNER CHECK`)
     const sheet = ss.getSheetByName('ROSTERS');
     const namesRange = ss.getRangeByName(`ROSTER_NAMES`);
@@ -185,6 +182,9 @@ function sleeperScoringLogging() {
     } catch (err) {
       Logger.log(`⚠️ Error setting champion cell on "ROSTERS" page. ${err.stack}`)
     }
+  } else {
+    scoringShow();
+    ss.toast(`Updated scores for all players in week ${week} successfully`,`✏️ SCORES UPDATED`);
   }
 }
 
