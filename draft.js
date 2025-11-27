@@ -389,7 +389,7 @@ function draftSetupExecute(docProps) {
               
               let hideRange = sheet.getRange(maxRows-1,1,2,maxCols);
               sheet.hideRow(hideRange);
-              scoringHide();
+              scoringHide(true);
             }
             ss.toast(`Successfully configured and deployed roster and scoring sheets!`,`📚 SHEETS SETUP`);
           } else if ( sheetNames[a] == `PICKS` ) {
