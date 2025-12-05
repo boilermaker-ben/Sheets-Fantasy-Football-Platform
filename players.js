@@ -1,4 +1,4 @@
-// WEEKLY FF PLAYERS - Updated 11.25.2025
+// WEEKLY FF PLAYERS - Updated 12.05.2025
 
 // Function to run all player pool setup scripts (auto = 1 escapes prompt)
 function playersRefresh(auto) {
