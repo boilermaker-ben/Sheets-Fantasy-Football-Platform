@@ -90,9 +90,6 @@ function players(selectedWeek){
     // Fetch images from Fantasy Pros site with function below
     // let images = fantasyProsImages(positions);
 
-    // Fetch NFL logos (for team defenses);
-    const logos = fetchLogos();
-
     // Fetch previous scoring from Sleeper stats
     let score, previous, previousTwo;
     score = sleeperScoring(ppr,year,week);
@@ -326,7 +323,7 @@ function players(selectedWeek){
               break;
             case 'image':
               if (player.position == 'DEF') {
-                playerRow.push(logos[player.team]);
+                playerRow.push(`https://sleepercdn.com/images/team_logos/nfl/${id.toLowerCase()}.png`);
               } else {
                 playerRow.push(`https://sleepercdn.com/content/nfl/players/thumb/${id}.jpg`);
               }
@@ -730,47 +727,6 @@ function fpProjectionFetch(ppr,playersObj) {
     Logger.log(`✅ All FP Players matched`);
   }
   return obj;
-}
-
-// LEAGUE LOGOS - Saves URLs to logos to a Script Property variable named "logos"
-function fetchLogos(){
-  let obj = {};
-  let logos = {};
-  try{
-    obj = JSON.parse(UrlFetchApp.fetch(SCOREBOARD));
-  }
-  catch (err) {
-    Logger.log(err.stack);
-    ui.alert(`⚠️ API ISSUE`,`The data source for this project isn't responding currently, try again in a moment.`,ui.ButtonSet.OK);
-    throw new Error(`⚠️ API issue, try later`);
-  }
-  
-  if (Object.keys(obj).length > 0) {
-    let games = obj.events;
-    // Loop through games provided and creates an array for placing
-    for (let a = 0; a < games.length; a++){
-      let competitors = games[a].competitions[0].competitors;
-      let teamOne = competitors[0].team.abbreviation;
-      let teamTwo = competitors[1].team.abbreviation;
-      let teamOneLogo = competitors[0].team.logo;
-      let teamTwoLogo = competitors[1].team.logo;
-      logos[teamOne] = teamOneLogo;
-      logos[teamTwo] = teamTwoLogo;
-    }
-    const docProps = PropertiesService.getDocumentProperties();
-    try {
-      let logoProp = docProps.getProperty(`logos`);
-      let tempObj = JSON.parse(logoProp);
-      if (Object.keys(tempObj).length < TEAMS) {
-        docProps.setProperty(`logos`,JSON.stringify(logos));
-      }
-    }
-    catch (err) {
-      Logger.log(`⚠️ Error fetching logo object, creating one now: ${err.stack}`);
-      docProps.setProperty(`logos`,JSON.stringify(logos));
-    }
-  }
-  return logos;
 }
 
 // 2025 - Created by Ben Powers
